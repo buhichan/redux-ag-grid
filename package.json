@@ -1,0 +1,44 @@
+{
+  "name": "ag-grid-react-preset",
+  "version": "1.0.0",
+  "description": "a grid",
+  "main": "dist/formly-form-preset.min.js",
+  "scripts": {
+    "dev": "webpack-dev-server --devtool=source-map --host=0.0.0.0 --history-api-fallback --port=8086 --inline --progress",
+    "build:dev": "webpack --bail --progress --profile",
+    "build:prod": "webpack --bail --progress --profile",
+    "build": "npm run build:dev & npm run build:prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.ucloudadmin.com:buhi/ag-grid-react-preset.git"
+  },
+  "keywords": [
+    "grid",
+    "table",
+    "reactjs",
+    "bootstrap"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.7"
+  },
+  "devDependencies": {
+    "autoprefixer": "~6.4.0",
+    "babel": "~6.5.2",
+    "babel-core": "~6.14.0",
+    "babel-loader": "~6.2.5",
+    "babel-plugin-transform-react-jsx": "^6.8.0",
+    "babel-preset-es2015": "~6.14.0",
+    "css-loader": "~0.24.0",
+    "es6-promise": "^3.2.1",
+    "extract-text-webpack-plugin": "~1.0.1",
+    "html-webpack-plugin": "~2.22.0",
+    "postcss-loader": "~0.11.1",
+    "raw-loader": "~0.5.1",
+    "style-loader": "~0.13.1",
+    "webpack": "~1.13.2",
+    "webpack-dev-server": "~1.15.0"
+  },
+  "author": "buhi",
+  "license": "MIT"
+}
