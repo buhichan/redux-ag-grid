@@ -3,6 +3,7 @@
  */
 "use strict";
 
+require("path").isAbsolute = require('path-is-absolute');
 require('es6-promise').polyfill();
 
 var webpack = require("webpack");
@@ -13,7 +14,9 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
 var ENV = process.env.npm_lifecycle_event;
 
 var config = {
-    entry: {"formly-form-preset":["./index"]},
+    entry: {
+        "main":["./index.ts"]
+    },
     output: {
         path:  __dirname +"/dist",
         publicPath: "/",
@@ -22,14 +25,18 @@ var config = {
     },
     module: {
         loaders: [{
-            test: /.jsx?$/,
+            test: /\.jsx?$/,
             loader: "babel",
             exclude: /node_modules/
         },{
-            test: /.css$/,
+            test: /\.tsx?$/,
+            loader: "awesome-typescript-loader",
+            exclude: /node_modules/
+        },{
+            test: /\.css$/,
             loader: ExtractTextPlugin.extract('style', 'css?sourceMap&-url!postcss')
         },{
-            test: /.html$/,
+            test: /\.html$/,
             loader: 'raw'
         }]
     },
@@ -41,12 +48,20 @@ var config = {
         stats:'minimal'
     },
     resolve:{
+        extensions: ['', '.js', '.ts', '.jsx', '.tsx', '.css', '.html'],
         modulesDirectories:['node_modules']
     },
     externals:{
-        angular:"angular"
+        react:"React",
+        "react-dom":"ReactDOM"
     }
+
 };
+
+if(ENV === "dev"){
+    config.entry.main = ["./example/example.jsx"];
+}else{
+}
 
 if(ENV=='dev')
     config.plugins.push(
