@@ -1,0 +1,9 @@
+.redux-ag-grid .ag-cell {
+  text-align: center;
+  vertical-align: center; }
+.redux-ag-grid .ag-header-cell-menu-button {
+  margin-left: -15px; }
+.redux-ag-grid .btn-actions .btn:not(:last-of-type) {
+  margin-right: 5px; }
+
+/*# sourceMappingURL=Grid.css.map */

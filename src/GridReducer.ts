@@ -9,6 +9,8 @@ export interface GridActionPayload<T>{
     key:(T:T)=>string
 }
 
+export type GridActionTypes = "grid/model/get"|"grid/model/count"|"grid/model/post"|"grid/model/put"|"grid/model/delete"
+
 export interface GridGetPayload<T> extends GridActionPayload<T>{
     models:T[]
 }
@@ -30,7 +32,7 @@ export interface GridCountPayload<T> extends GridActionPayload<T>{
 }
 
 export function GridReducer<T>(prevState, action:{
-    type:string,
+    type:GridActionTypes,
     value:GridActionPayload<T>
 }) {
     let payload;

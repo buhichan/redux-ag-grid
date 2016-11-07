@@ -75,11 +75,11 @@ if(ENV == 'build:prod')
 
 switch(ENV){
     case "dev":
-        config.devtools= 'inline-source-map';break;
+        config.devtool = 'inline-source-map';break;
     case "build:dev":
-        config.devtools = 'eval-source-map';break;
+        config.devtool = 'eval-source-map';break;
     case "build:prod":
-        config.devtools = 'source-map';break;
+        config.devtool = 'source-map';break;
 }
 
 module.exports = config;

@@ -1,0 +1,14 @@
+.redux-ag-grid{
+  .ag-cell{
+    text-align:center;
+    vertical-align: center;
+  }
+  .ag-header-cell-menu-button{
+    margin-left:-15px;
+  }
+  .btn-actions{
+    .btn:not(:last-of-type){
+      margin-right:5px;
+    }
+  }
+}

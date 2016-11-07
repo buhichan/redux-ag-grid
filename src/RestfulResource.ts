@@ -2,11 +2,10 @@
  * Created by YS on 2016/11/4.
  */
 "use strict";
-import {RestfulActionClassFactory} from "./ActionClassFactory"
+import {RestfulActionClassFactory, RestfulActionDef, ActionInstance} from "./ActionClassFactory"
 import {GridFilter} from "./Grid"
 import {keyValueToQueryParams} from "./Utils";
 import {Dispatch} from "redux";
-import {ActionDef} from "./Store";
 
 export type APIType = 'NodeRestful' | 'Loopback' | '' | null
 
@@ -29,12 +28,13 @@ export interface ActionResourceOptions<T>{
 export class RestfulResource<T> implements Resource<T>{
     params = {};
     config: RequestInit & {params:any} = {params:{}};
+    actions: ActionInstance<T>[];
     constructor(
         url:string,
         modelPath:string[],
         gridName:string,
         dispatch:Dispatch<any>,
-        actions:ActionDef<T>[],
+        actions:RestfulActionDef<T>[],
         public options:ActionResourceOptions<T>={}
     ){
         if (url.substr(-1) !== '/') url += '/';
@@ -182,13 +182,8 @@ export class RestfulResource<T> implements Resource<T>{
 
         if(actions) {
             let Action = RestfulActionClassFactory(url);
-
-            actions.forEach((action)=> {
-                this['custom:' + action.name] = Action(action.name,{
-                    'static':action.static,
-                    displayName:action.displayName,
-                    enabled:action.enabled
-                },()=>this.config,action.data,this.options.key)
+            this.actions = actions.map((action)=> {
+                return Action(action,()=>this.config,this.options.key)
             });
         }
     }

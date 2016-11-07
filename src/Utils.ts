@@ -33,6 +33,9 @@ export function deepSetState(state,data,...keys){
 }
 
 export function keyValueToQueryParams(params:{[id:string]:any}):string{
+    let keys = Object.keys(params);
+    if(!keys.length) return "";
+    else
     return "?"+Object.keys(params).map(key=>{
         return encodeURIComponent(key)+"="+encodeURIComponent(JSON.stringify(params[key]))
     }).join("&")

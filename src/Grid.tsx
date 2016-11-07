@@ -1,17 +1,21 @@
+///<reference path="GridFilters.tsx"/>
 /**
  * Created by YS on 2016/9/24.
  */
 "use strict";
-
+import "./Grid.css"
 import "ag-grid/dist/styles/ag-grid.css"
 import "ag-grid/dist/styles/theme-bootstrap.css"
 import {Component} from "react"
 import * as React from "react"
 import {AgGridReact as AgGrid} from "ag-grid-react"
-import {AbstractColDef} from "ag-grid";
-import {Resource} from "./RestfulResource"
+import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
+import {Resource, RestfulResource} from "./RestfulResource"
 let {connect} =require("react-redux");
 import {deepGetState} from "./Utils";
+import {EnumFilter, DateFilter} from "./GridFilters";
+import {ActionInstance} from "./ActionClassFactory";
+import Dispatch = Redux.Dispatch;
 
 export interface GridFilter{
     quickFilterText?:string,
@@ -44,16 +48,21 @@ export interface GridFieldSchema{
 
 export interface GridState{
     quickFilterText?:string,
-    icons?:string,
     parsedSchema?:AbstractColDef[],
     filter?:GridFilter
+    selectAll?:boolean
 }
 export interface GridProp<T>{
+    className?:string
     store:Immutable.Map<any,any>,
     resource:Resource<T>,
     modelPath?:string[]
     schema:GridFieldSchema[],
-    onCellDblClick:(...args:any[])=>any
+    actions:ActionInstance<T>[],
+    onCellClick?:(...args:any[])=>any
+    onCellDblClick?:(...args:any[])=>any
+    dispatch:Dispatch<any>
+    height?:number
 }
 
 @connect(
@@ -63,16 +72,18 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     getModels(){
         return deepGetState(this.props.store,...this.props.modelPath)
     }
+    gridApi:GridApi;
+    columnApi:ColumnApi;
     state={
         quickFilterText:'',
-        icons:"haha",
         parsedSchema:[],
         filter:{
             pagination:{
                 limit:20,
                 offset:0
             }
-        }
+        },
+        selectAll:false
     };
     componentDidMount(){
         if(!this.props.resource)
@@ -85,12 +96,60 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
             })
         });
     }
-    parseSchema(schema):Promise<AbstractColDef[]>{
-        return Promise.all(schema.map(column=>{
-            let parseField:(options:any)=>AbstractColDef = (options)=>({
-                field:column.key,
-                headerName:column.label
+    componentWillReceiveProps(newProps:GridProp<T>){
+        if(newProps.schema!==this.props.schema)
+            this.parseSchema(this.props.schema).then((parsed)=>{
+                this.setState({
+                    parsedSchema:parsed
+                })
             });
+    }
+    parseSchema(schema:GridFieldSchema[]):Promise<AbstractColDef[]>{
+        return Promise.all(schema.map(column=>{
+            let parseField:(options:any)=>AbstractColDef = (options)=>{
+                let colDef={
+                    field:column.key,
+                    headerName:column.label
+                };
+                switch (column.type){
+                    case "select":
+                            colDef['cellRenderer'] = function (params) {
+                                let colors = ['primary', 'success', 'warning', 'info', 'danger'];
+                                let target;
+                                if (params.value instanceof Array)
+                                    target = params.value;
+                                else
+                                    target = [params.value];
+                                return target.reduce((prev, cur)=> {
+                                    let index = 0;
+                                    options.every((option, i)=> {
+                                        if (option.value === cur) {
+                                            index = i;
+                                            return false;
+                                        }
+                                        return true;
+                                    });
+                                    return prev + `<label class="label label-${colors[index % colors.length]}">${options[index].name}</label>`
+                                }, "");
+                            };
+                            colDef['options'] = column.options;
+                            colDef['filterFramework'] = EnumFilter;
+                    break;
+                case "date":
+                case "datetime-local":
+                    let method;
+                    if(column.type === "date")
+                        method = "toLocaleDateString";
+                    else
+                        method = "toLocaleString";
+                        colDef['cellRenderer']= params=>{
+                            return (params.value!==null&&params.value!==undefined)?new Date(params.value)[method]('zh-cn'): ""
+                        };
+                        colDef['filterFramework'] = DateFilter;
+                    break;
+                }
+                return colDef;
+            };
             if(typeof column.options === "string"){
                 return Promise.resolve(fetch(column.options as string,{
                     method:"GET",
@@ -102,18 +161,88 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 return Promise.resolve(parseField(column.options))
         }))
     }
+    getActions(){
+        let staticActions:ActionInstance<T>[] = [];
+        let rowActions:ActionInstance<T>[] = [];
+        let restResource = this.props.resource as RestfulResource<T>;
+        if(restResource.actions)
+            restResource.actions.forEach(action=>{
+                if(action.isStatic)
+                    staticActions.push(action);
+                else
+                    rowActions.push(action);
+            });
+        if(this.props.actions)
+            this.props.actions.forEach(action=>{
+                if(action.isStatic)
+                    staticActions.push(action);
+                else
+                    rowActions.push(action);
+            });
+        return {
+            staticActions,
+            rowActions
+        }
+    }
     render(){
-        return <div className="ag-bootstrap" style={{height:"600px"}}>
-            <AgGrid
-            onRowDblClicked={this.props.onCellDblClick}
-            quickFilterText={this.state.quickFilterText}
-            icons={this.state.icons}
-            columnDefs={this.state.parsedSchema}
-            rowData={this.getModels()}
+        let {staticActions,rowActions} = this.getActions();
+        return <div className={"redux-ag-grid ag-bootstrap panel panel-default"+(this.props.className||"")}>
+            <div className="panel-heading clearfix">
+                <div className="pull-left">
+                    <button className="btn btn-default" onClick={()=>{
+                        this.state.selectAll?this.gridApi.deselectAll():this.gridApi.selectAll();
+                        this.state.selectAll = !this.state.selectAll;
+                    }}>全选/取消</button>
+                </div>
+                <div className="btn-group btn-group-sm pull-right">
+                    {
+                        staticActions.map((action, i)=>
+                        <button key={i} className="btn btn-default"
+                                onClick={()=>action(this.gridApi.getSelectedRows(),this.props.dispatch)}>{action.displayName}</button>)
+                    }
+                </div>
+            </div>
+            <div className="panel-body" style={{height:(this.props.height||600)+"px"}}>
+                <AgGrid
+                    onRowDblClicked={this.props.onCellDblClick}
+                    quickFilterText={this.state.quickFilterText}
+                    columnDefs={this.state.parsedSchema.concat([{
+                        headerName:"",
+                        suppressFilter:true,
+                        suppressMenu:true,
+                        suppressSorting:true,
+                        cellRendererFramework:ActionCell
+                    }])}
+                    rowData={this.getModels()}
+                    rowHeight={40}
+                    context={{
+                        getSelected:()=>this.gridApi.getSelectedRows(),
+                        dispatch:this.props.dispatch,
+                        rowActions
+                    }}
+                    onGridReady={params=>{this.gridApi=params.api;this.columnApi=params.columnApi}}
+                    onColumnEverythingChanged={()=>this.gridApi&&this.gridApi.sizeColumnsToFit()}
+                    rowSelection="multiple"
+                    enableSorting="true"
+                    enableFilter="true"/>
+            </div>
+        </div>
+    }
+}
 
-            rowSelection="multiple"
-            enableSorting="true"
-            enableFilter="true"/>
+class ActionCell extends React.Component<any,any>{
+    render(){
+        return <div className="btn-actions">
+            {
+                this.props.context.rowActions.filter(action=>!action.enabled||action.enabled(this.props.data)).map((action, i)=>
+                    <button key={i} className="btn btn-sm btn-primary"
+                        ref={(ref)=>{
+                            ref&&ref.addEventListener('click',(e)=>{
+                                action(action.useSelected?this.props.context.getSelected():this.props.data,this.props.context.dispatch)
+                                e.stopPropagation();
+                            })
+                        }}>{action.displayName}</button>)
+            }
         </div>
     }
 }
