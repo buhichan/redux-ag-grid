@@ -4,9 +4,9 @@
  */
 "use strict";
 
-export {Grid} from "./src/Grid"
-export {RestfulResource} from "./src/RestfulResource"
-export {GridReducer} from "./src/GridReducer"
-export {SocketIOReducerFactory} from "./src/SocketIOReducer"
-export {GridStore} from "./src/Store"
-export {keyValueToQueryParams,deepSetState,deepGetState,setImmuOrPOJO,getImmuOrPOJO} from "./src/Utils"
+export {Grid as ReduxAgGrid} from "./build/Grid"
+export {RestfulResource} from "./build/RestfulResource"
+export {GridReducer} from "./build/GridReducer"
+export {SocketIOReducerFactory} from "./build/SocketIOReducer"
+export {GridStore} from "./build/Store"
+export {keyValueToQueryParams,deepSetState,deepGetState,setImmuOrPOJO,getImmuOrPOJO} from "./build/Utils"

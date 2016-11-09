@@ -7,3 +7,4 @@
 /// <reference path="globals/redux/index.d.ts" />
 /// <reference path="globals/whatwg-fetch/index.d.ts" />
 /// <reference path="globals/immutable/index.d.ts" />
+/// <reference path="globals/socket.io-client/index.d.ts" />

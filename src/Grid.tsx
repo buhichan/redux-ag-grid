@@ -1,4 +1,3 @@
-///<reference path="GridFilters.tsx"/>
 /**
  * Created by YS on 2016/9/24.
  */
@@ -53,15 +52,15 @@ export interface GridState{
     selectAll?:boolean
 }
 export interface GridProp<T>{
-    className?:string
-    store:Immutable.Map<any,any>,
-    resource:Resource<T>,
+    gridName:string,
+    store?:Immutable.Map<any,any>,
+    resource?:Resource<T>,
     modelPath?:string[]
-    schema:GridFieldSchema[],
-    actions:ActionInstance<T>[],
+    schema?:GridFieldSchema[],
+    actions?:ActionInstance<T>[],
     onCellClick?:(...args:any[])=>any
     onCellDblClick?:(...args:any[])=>any
-    dispatch:Dispatch<any>
+    dispatch?:Dispatch<any>
     height?:number
 }
 
@@ -70,7 +69,7 @@ export interface GridProp<T>{
 )
 export class Grid<T> extends Component<GridProp<T>,GridState>{
     getModels(){
-        return deepGetState(this.props.store,...this.props.modelPath)
+        return deepGetState(this.props.store,...this.props.modelPath||this.props.resource['modelPath'])
     }
     gridApi:GridApi;
     columnApi:ColumnApi;
@@ -88,8 +87,11 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     componentDidMount(){
         if(!this.props.resource)
             throw new Error("请使用ResourceAdapterService构造一个Resource");
+        if(!this.props.modelPath && !this.props.resource['modelPath'])
+            throw new Error("请声明modelPath:string[]");
         this.props.resource.filter(this.state.filter);
         this.props.resource.get();
+        this.props.resource['gridName'] = this.props.gridName || ('grid'+Math.random());
         this.parseSchema(this.props.schema).then((parsed)=>{
             this.setState({
                 parsedSchema:parsed
@@ -186,7 +188,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     }
     render(){
         let {staticActions,rowActions} = this.getActions();
-        return <div className={"redux-ag-grid ag-bootstrap panel panel-default"+(this.props.className||"")}>
+        return <div className={"redux-ag-grid ag-bootstrap panel panel-default"}>
             <div className="panel-heading clearfix">
                 <div className="pull-left">
                     <button className="btn btn-default" onClick={()=>{

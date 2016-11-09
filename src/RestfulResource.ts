@@ -7,7 +7,7 @@ import {GridFilter} from "./Grid"
 import {keyValueToQueryParams} from "./Utils";
 import {Dispatch} from "redux";
 
-export type APIType = 'NodeRestful' | 'Loopback' | '' | null
+export type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null
 
 export interface Resource<T>{
     get?:()=>Promise<void>,
@@ -22,27 +22,34 @@ export interface ActionResourceOptions<T>{
     key?:(model:T)=>string,
     params?:(filter:GridFilter)=>({[id:string]:any}),
     methods?:Resource<T>,
-    apiType?:APIType
+    apiType?:APIType,
+    fetch?:typeof fetch,
+    mapResToData?:(any)=>any
 }
 
 export class RestfulResource<T> implements Resource<T>{
     params = {};
+    options;
     config: RequestInit & {params:any} = {params:{}};
     actions: ActionInstance<T>[];
-    constructor(
+    modelPath:string[];
+    gridName:string;
+    constructor({
+        url,modelPath,dispatch,actions,options={}
+    }:{
         url:string,
         modelPath:string[],
-        gridName:string,
         dispatch:Dispatch<any>,
         actions:RestfulActionDef<T>[],
-        public options:ActionResourceOptions<T>={}
-    ){
+        options:ActionResourceOptions<T>
+    }){
         if (url.substr(-1) !== '/') url += '/';
         options.methods = options.methods || {};
         options.key = options.key || (x=>x['id']);
-        options.params = (filter)=>{
-            return filter
-        };
+        options.mapResToData = options.mapResToData || (x=>x);
+        let fetch = options.fetch || window.fetch;
+        this.options = options;
+        this.modelPath = modelPath;
         switch(options.apiType){
             case "NodeRestful": {
                 options.params = options.params || function(filter){
@@ -69,48 +76,63 @@ export class RestfulResource<T> implements Resource<T>{
             }
             case "Loopback": {
                 options.params = options.params || function(filter){
-                        let _filter:Loopback.Params = {where:{}};
-                        filter.search.forEach(function(condition){
-                            if(/^\/.*\/$/.test(condition.value))
-                                _filter.where[condition.field]={like:condition.value.slice(1,-1)};
-                            else
-                                _filter.where[condition.field]=condition.value;
-                        });
-                        if(filter.pagination) {
-                            _filter.offset = filter.pagination.offset;
-                            _filter.limit = filter.pagination.limit;
-                        }
-                        if(filter.sort.field)
-                            _filter.order = filter.sort.field+(filter.sort.reverse?" DESC":" ASC");
+                    let _filter:Loopback.Params = {where:{}};
+                    filter.search.forEach(function(condition){
+                        if(/^\/.*\/$/.test(condition.value))
+                            _filter.where[condition.field]={like:condition.value.slice(1,-1)};
                         else
-                            _filter.order = null;
-                        return {filter:_filter};
-                    };
-                options.methods.count = options.methods.count || (()=> {
-                        if (this.config.params && this.config.params.filter)
-                            this.config.params.where = this.config.params.filter.where;
-                        return fetch(url + '/count'+keyValueToQueryParams(options.params(this.config.params)),this.config).then(res=>res.json()).then((res)=>{
-                            dispatch({
-                                type:"grid/model/count",
-                                value:{
-                                    modelPath,
-                                    gridName,
-                                    count:res.count
-                                }
-                            })
-                        });
+                            _filter.where[condition.field]=condition.value;
                     });
+                    if(filter.pagination) {
+                        _filter.offset = filter.pagination.offset;
+                        _filter.limit = filter.pagination.limit;
+                    }
+                    if(filter.sort.field)
+                        _filter.order = filter.sort.field+(filter.sort.reverse?" DESC":" ASC");
+                    else
+                        _filter.order = null;
+                    return {filter:_filter};
+                };
+                options.methods.count = options.methods.count || (()=> {
+                    if (this.config.params && this.config.params.filter)
+                        this.config.params.where = this.config.params.filter.where;
+                    return fetch(url + '/count'+keyValueToQueryParams(options.params(this.config.params)),this.config)
+                        .then(res=>res.json()).then(options.mapResToData).then((res)=>{
+                        dispatch({
+                            type:"grid/model/count",
+                            value:{
+                                modelPath,
+                                gridName:this.gridName,
+                                count:res
+                            }
+                        })
+                    });
+                });
+                break;
+            }
+            case "Swagger":{
+                options.params = options.params || ((filter)=>{
+                    let params = {};
+                    if(filter.pagination) {
+                        params['page'] = (filter.pagination.offset/filter.pagination.limit+1);
+                        params['perPage'] = filter.pagination.limit;
+                    }
+                    if(filter.sort)
+                        params['order'] = (filter.sort.field + filter.sort.reverse?" DESC":" ASC");
+                    return params;
+                });
                 break;
             }
         }
         //TODO catch exception
         this['get'] = options.methods.get || (()=>{
-                return fetch(url+keyValueToQueryParams(this.config.params),this.config).then(res=>res.json()).then((res)=>{
+                return fetch(url+keyValueToQueryParams(this.config.params),this.config)
+                    .then(res=>res.json()).then(options.mapResToData).then((res)=>{
                     dispatch({
                         type:"grid/model/get",
                         value:{
                             modelPath,
-                            gridName,
+                            gridName:this.gridName,
                             key:options.key,
                             models:res
                         }
@@ -118,12 +140,13 @@ export class RestfulResource<T> implements Resource<T>{
                 },this.errorHandler.bind(this))
             });
         this['count'] = options.methods.count || (()=>{
-                return fetch(url + '/count'+keyValueToQueryParams(this.config.params),this.config).then(res=>res.json()).then((res)=>{
+                return fetch(url + '/count'+keyValueToQueryParams(this.config.params),this.config)
+                    .then(res=>res.json()).then(options.mapResToData).then((res)=>{
                     dispatch({
                         type:"grid/model/count",
                         value:{
                             modelPath,
-                            gridName,
+                            gridName:this.gridName,
                             key:options.key,
                             count:res
                         }
@@ -133,13 +156,13 @@ export class RestfulResource<T> implements Resource<T>{
         this['delete'] = options.methods.delete || ((data)=>{
                 return fetch(url + '/' + options.key(data)+keyValueToQueryParams(this.config.params), Object.assign(this.config,{
                     method:"DELETE"
-                })).then(res=>res.json()).then((res)=>{
+                })).then(res=>res.json()).then(options.mapResToData).then((res)=>{
                     if(res)
                         dispatch({
                             type:"grid/model/delete",
                             value:{
                                 modelPath,
-                                gridName,
+                                gridName:this.gridName,
                                 key:options.key,
                                 model:data
                             }
@@ -152,12 +175,12 @@ export class RestfulResource<T> implements Resource<T>{
                 else
                     return fetch(url + '/' +options.key(data)+keyValueToQueryParams(this.config.params), Object.assign(this.config,{
                         body:JSON.stringify(data)
-                    })).then(res=>res.json()).then((res)=>{
+                    })).then(res=>res.json()).then(options.mapResToData).then((res)=>{
                         dispatch({
                             type:"grid/model/put",
                             value:{
                                 modelPath,
-                                gridName,
+                                gridName:this.gridName,
                                 key:options.key,
                                 model:res
                             }
@@ -167,12 +190,12 @@ export class RestfulResource<T> implements Resource<T>{
         this['post']= options.methods.post || ((data)=>{
                 return fetch(url+keyValueToQueryParams(this.config.params), Object.assign(this.config,{
                     body:JSON.stringify(data)
-                })).then(res=>res.json()).then((res)=>{
+                })).then(res=>res.json()).then(options.mapResToData).then((res)=>{
                     dispatch({
                         type:"grid/model/post",
                         value:{
                             modelPath,
-                            gridName,
+                            gridName:this.gridName,
                             key:options.key,
                             model:res
                         }
