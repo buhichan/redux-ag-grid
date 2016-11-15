@@ -1,12 +1,8 @@
-/**
- * Created by YS on 2016/11/4.
- */
 export interface GridActionPayload<T> {
-    gridName: string;
     modelPath: string[];
     key: (T: T) => string;
 }
-export declare type GridActionTypes = "grid/model/get" | "grid/model/count" | "grid/model/post" | "grid/model/put" | "grid/model/delete";
+export declare type GridActionTypes = "grid/model/get" | "grid/model/count" | "grid/model/post" | "grid/model/put" | "grid/model/delete" | "grid/model/change";
 export interface GridGetPayload<T> extends GridActionPayload<T> {
     models: T[];
 }
@@ -22,7 +18,15 @@ export interface GridPostPayload<T> extends GridActionPayload<T> {
 export interface GridCountPayload<T> extends GridActionPayload<T> {
     count: number;
 }
-export declare function GridReducer<T>(prevState: any, action: {
+export interface GridChangePayload<T> extends GridActionPayload<T> {
+    data: {
+        id: string;
+        changes: {
+            [key: string]: any;
+        };
+    };
+}
+export declare function GridReducer<T>(rootState: any, action: {
     type: GridActionTypes;
     value: GridActionPayload<T>;
 }): any;

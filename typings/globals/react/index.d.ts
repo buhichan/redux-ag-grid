@@ -135,7 +135,7 @@ declare namespace __React {
         ...children: ReactNode[]): SFCElement<P>;
     function cloneElement<P extends Q, Q, T extends Component<P, ComponentState>>(
         element: CElement<P, T>,
-        props?: Q, // should be Q & ClassAttributes<T>
+        props?: Q, // should be Q & ClassAttributes<Model>
         ...children: ReactNode[]): CElement<P, T>;
     function cloneElement<P extends Q, Q>(
         element: ReactElement<P>,
@@ -163,7 +163,7 @@ declare namespace __React {
         forceUpdate(callback?: () => any): void;
         render(): JSX.Element;
 
-        // React.Props<T> is now deprecated, which means that the `children`
+        // React.Props<Model> is now deprecated, which means that the `children`
         // property is not available on `P` by default, even though you can
         // always pass children as variadic arguments to `createElement`.
         // In the future, if we can define its call signature conditionally
@@ -399,7 +399,7 @@ declare namespace __React {
      * @deprecated. This was used to allow clients to pass `ref` and `key`
      * to `createElement`, which is no longer necessary due to intersection
      * types. If you need to declare a props object before passing it to
-     * `createElement` or a factory, use `ClassAttributes<T>`:
+     * `createElement` or a factory, use `ClassAttributes<Model>`:
      *
      * ```ts
      * var b: Button;

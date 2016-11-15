@@ -34,7 +34,7 @@ function deepSetState(state, data) {
     if (!keys || !keys.length)
         return data;
     var nextKey = keys.shift();
-    var prevState = getImmuOrPOJO(state, nextKey);
+    var prevState = getImmuOrPOJO(state, nextKey) || {};
     var nextState = deepSetState.apply(void 0, [prevState, data].concat(keys));
     if (prevState !== nextState)
         return setImmuOrPOJO(state, nextState, nextKey);

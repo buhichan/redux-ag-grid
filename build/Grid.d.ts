@@ -23,14 +23,19 @@ export interface GridFilter {
     };
 }
 export declare type columnType = "select" | "checkbox" | "date" | "datetime-local" | null;
+export declare type Options = {
+    name: string;
+    value: string;
+}[];
+export declare type AsyncOptions = {
+    url: string;
+    mapResToOptions?: (res: any) => Options;
+};
 export interface GridFieldSchema {
     type?: columnType;
     key: string;
     label: string;
-    options?: {
-        name: string;
-        value: string;
-    }[] | string;
+    options?: Options | AsyncOptions;
 }
 export interface GridState {
     quickFilterText?: string;
@@ -39,12 +44,12 @@ export interface GridState {
     selectAll?: boolean;
 }
 export interface GridProp<T> {
-    gridName: string;
+    gridName?: string;
     store?: Immutable.Map<any, any>;
     resource?: Resource<T>;
     modelPath?: string[];
     schema?: GridFieldSchema[];
-    actions?: ActionInstance<T>[];
+    actions?: (ActionInstance<T> | string)[];
     onCellClick?: (...args: any[]) => any;
     onCellDblClick?: (...args: any[]) => any;
     dispatch?: Dispatch<any>;

@@ -114,32 +114,42 @@ var Grid = (function (_super) {
                 }
                 return colDef;
             };
-            if (typeof column.options === "string") {
-                return Promise.resolve(fetch(column.options, {
+            if (column.options && !(column.options instanceof Array)) {
+                var asyncOptions_1 = column.options;
+                return Promise.resolve(fetch(asyncOptions_1.url, {
                     method: "GET",
                     headers: {
                         "Content-Type": "applicatoin/json"
                     }
-                })).then(function (res) { return res.json(); }).then(parseField);
+                })).then(function (res) { return res.json(); }).then(function (res) {
+                    return parseField(asyncOptions_1.mapResToOptions ? asyncOptions_1.mapResToOptions(res) : res);
+                });
             }
             else
                 return Promise.resolve(parseField(column.options));
         }));
     };
     Grid.prototype.getActions = function () {
+        var _this = this;
         var staticActions = [];
         var rowActions = [];
         var restResource = this.props.resource;
-        if (restResource.actions)
-            restResource.actions.forEach(function (action) {
-                if (action.isStatic)
-                    staticActions.push(action);
-                else
-                    rowActions.push(action);
-            });
         if (this.props.actions)
             this.props.actions.forEach(function (action) {
-                if (action.isStatic)
+                if (action === 'delete') {
+                    var deleteAction = function (data) {
+                        return _this.props.resource.delete(data);
+                    };
+                    deleteAction['displayName'] = '删除';
+                    rowActions.push(deleteAction);
+                }
+                else if (typeof action === 'string' && restResource.actions[action]) {
+                    if (restResource.actions[action].isStatic)
+                        staticActions.push(restResource.actions[action]);
+                    else
+                        rowActions.push(restResource.actions[action]);
+                }
+                else if (action.isStatic)
                     staticActions.push(action);
                 else
                     rowActions.push(action);

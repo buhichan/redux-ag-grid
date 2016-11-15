@@ -3,13 +3,14 @@ import {deepSetState, deepGetState} from "./Utils";
  * Created by YS on 2016/11/4.
  */
 
+import {List} from "immutable"
+
 export interface GridActionPayload<T>{
-    gridName:string,
     modelPath:string[],
     key:(T:T)=>string
 }
 
-export type GridActionTypes = "grid/model/get"|"grid/model/count"|"grid/model/post"|"grid/model/put"|"grid/model/delete"
+export type GridActionTypes = "grid/model/get"|"grid/model/count"|"grid/model/post"|"grid/model/put"|"grid/model/delete"|"grid/model/change"
 
 export interface GridGetPayload<T> extends GridActionPayload<T>{
     models:T[]
@@ -31,36 +32,57 @@ export interface GridCountPayload<T> extends GridActionPayload<T>{
     count:number
 }
 
-export function GridReducer<T>(prevState, action:{
-    type:GridActionTypes,
-    value:GridActionPayload<T>
+export interface GridChangePayload<T> extends GridActionPayload<T>{
+    data: {
+        id: string,
+        changes: {[key: string]: any}
+    }
+}
+
+export function GridReducer<T>(rootState, action: {
+    type: GridActionTypes,
+    value: GridActionPayload<T>
 }) {
-    let payload;
+    let payload,list:List<T>;
     switch (action.type) {
         case "grid/model/get":
-            return deepSetState(prevState,(action.value as GridGetPayload<T>).models,...action.value.modelPath);
+            return deepSetState(rootState, List((action.value as GridGetPayload<T>).models), ...action.value.modelPath);
         case "grid/model/count":
-            return deepSetState(prevState,(action.value as GridCountPayload<T>).count,'grid',action.value.gridName,'count');
-        case "grid/model/post":
-            payload = action.value as GridPostPayload<T>;
-            let list = deepGetState(prevState,...payload.modelPath);
-            list = list.map((item:T)=>{
-                if(action.value.key(item) === action.value.key(payload.model))
-                    return payload.model;
-                else return item;
-            });
-            return deepSetState(prevState,list,...payload.modelPath);
+            payload = action.value as GridCountPayload<T>;
+            return deepSetState(rootState, payload.count, 'grid', 'counts' ,payload.modelPath);
         case "grid/model/put":
+            payload = action.value as GridPostPayload<T>;
+            list = deepGetState(rootState,...payload.modelPath);
+            var index = list.findIndex(entry=>payload.key(entry)===payload.key(payload.model));
+            if(index>=0) {
+                return deepSetState(rootState, list.set(index, payload.model), ...payload.modelPath);
+            }else return rootState;
+        case "grid/model/post":
             payload = action.value as GridPutPayload<T>;
-            return deepSetState(prevState,deepGetState(prevState,...payload.modelPath).concat([payload.model]),...payload.modelPath);
+            list = deepGetState(rootState,...payload.modelPath);
+            return deepSetState(rootState,list.insert(0,payload.model),...payload.modelPath);
         case "grid/model/delete":
             payload = action.value as GridDeletePayload<T>;
-            list = deepGetState(prevState,...payload.modelPath);
-            list = list.filter((item:T)=>{
+            list = deepGetState(rootState, ...payload.modelPath);
+            let i = list.findIndex((item: T)=> {
                 return (action.value.key(item) === action.value.key(payload.model))
             });
-            return deepSetState(prevState,list,...payload.modelPath);
+            if(i>=0)
+                list = list.delete(i);
+            return deepSetState(rootState, list, ...payload.modelPath);
+        case "grid/model/change":
+            payload = action.value as GridChangePayload<T>;
+            list = deepGetState(rootState, ...payload.modelPath);
+            var index = list.findIndex(entry=>payload.key(entry)===payload.data.id);
+            if(index>=0) {
+                return deepSetState(rootState, list.update(index, (item:T)=>{
+                    let AllEqual = Object.keys(payload.data.changes).every(key=>{
+                        return (payload.data.changes[key]===item[key]);
+                    });
+                    return AllEqual?item:Object.assign({},item,payload.data.changes);
+                }), ...payload.modelPath);
+            }else return rootState;
         default:
-            return prevState
+            return rootState
     }
 }

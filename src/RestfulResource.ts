@@ -24,24 +24,35 @@ export interface ActionResourceOptions<T>{
     methods?:Resource<T>,
     apiType?:APIType,
     fetch?:typeof fetch,
-    mapResToData?:(any)=>any
+    mapResToData?:(data:any,methodType?:"post"|"get"|"count"|"put"|"delete")=>any
 }
 
-export class RestfulResource<T> implements Resource<T>{
+export class RestfulResource<Model,Actions> implements Resource<Model>{
     params = {};
-    options;
-    config: RequestInit & {params:any} = {params:{}};
-    actions: ActionInstance<T>[];
+    options:ActionResourceOptions<Model>;
+    config: RequestInit= {};
+    actions: Actions & {[actionName:string]:ActionInstance<Model>};
     modelPath:string[];
     gridName:string;
+
+    get?:()=>Promise<void>;
+    post?:(model:Model)=>Promise<void>;
+    put?:(model:Model)=>Promise<void>;
+    delete?:(model:Model)=>Promise<void>;
+    count?:()=>Promise<void>;
+
     constructor({
-        url,modelPath,dispatch,actions,options={}
+        url,
+        modelPath,
+        dispatch,
+        options={},
+        actions,
     }:{
         url:string,
         modelPath:string[],
         dispatch:Dispatch<any>,
-        actions:RestfulActionDef<T>[],
-        options:ActionResourceOptions<T>
+        options:ActionResourceOptions<Model>
+        actions?:Actions & {[actionName:string]:RestfulActionDef<Model>},
     }){
         if (url.substr(-1) !== '/') url += '/';
         options.methods = options.methods || {};
@@ -94,9 +105,9 @@ export class RestfulResource<T> implements Resource<T>{
                     return {filter:_filter};
                 };
                 options.methods.count = options.methods.count || (()=> {
-                    if (this.config.params && this.config.params.filter)
-                        this.config.params.where = this.config.params.filter.where;
-                    return fetch(url + '/count'+keyValueToQueryParams(options.params(this.config.params)),this.config)
+                    if (this.params && this.params['filter'])
+                        this.params['where'] = this.params['filter'].where;
+                    return fetch(url + '/count'+keyValueToQueryParams(options.params(this.params)),this.config)
                         .then(res=>res.json()).then(options.mapResToData).then((res)=>{
                         dispatch({
                             type:"grid/model/count",
@@ -125,88 +136,92 @@ export class RestfulResource<T> implements Resource<T>{
             }
         }
         //TODO catch exception
-        this['get'] = options.methods.get || (()=>{
-                return fetch(url+keyValueToQueryParams(this.config.params),this.config)
-                    .then(res=>res.json()).then(options.mapResToData).then((res)=>{
+        this.get = options.methods.get || (()=>{
+                return fetch(url+keyValueToQueryParams(this.params),this.config)
+                    .then(res=>res.json()).then((res)=>{
                     dispatch({
                         type:"grid/model/get",
                         value:{
                             modelPath,
-                            gridName:this.gridName,
                             key:options.key,
-                            models:res
+                            models:options.mapResToData(res,'get')
                         }
-                    })
+                    });
+                    return res;
                 },this.errorHandler.bind(this))
             });
-        this['count'] = options.methods.count || (()=>{
-                return fetch(url + '/count'+keyValueToQueryParams(this.config.params),this.config)
-                    .then(res=>res.json()).then(options.mapResToData).then((res)=>{
+        this.count = options.methods.count || (()=>{
+                return fetch(url + 'count'+keyValueToQueryParams(this.params),this.config)
+                    .then(res=>res.json()).then((res)=>{
                     dispatch({
                         type:"grid/model/count",
                         value:{
                             modelPath,
                             gridName:this.gridName,
                             key:options.key,
-                            count:res
+                            count:options.mapResToData(res,'count')
                         }
-                    })
+                    });
+                    return res;
                 },this.errorHandler.bind(this))
             });
-        this['delete'] = options.methods.delete || ((data)=>{
-                return fetch(url + '/' + options.key(data)+keyValueToQueryParams(this.config.params), Object.assign(this.config,{
+        this.delete = options.methods.delete || ((data)=>{
+                return fetch(url + options.key(data), Object.assign({},this.config,{
                     method:"DELETE"
-                })).then(res=>res.json()).then(options.mapResToData).then((res)=>{
-                    if(res)
+                })).then(res=>res.json()).then((res)=>{
+                    if(options.mapResToData(res,'delete'))
                         dispatch({
                             type:"grid/model/delete",
                             value:{
                                 modelPath,
-                                gridName:this.gridName,
                                 key:options.key,
                                 model:data
                             }
                         });
+                    return res;
                 },this.errorHandler.bind(this))
             });
-        this['put']= options.methods.put || ((data)=>{
+        this.put= options.methods.put || ((data)=>{
                 if(!options.key(data))
                     return this['post'](data);
                 else
-                    return fetch(url + '/' +options.key(data)+keyValueToQueryParams(this.config.params), Object.assign(this.config,{
+                    return fetch(url +options.key(data), Object.assign({},this.config,{
+                        method:"PUT",
                         body:JSON.stringify(data)
-                    })).then(res=>res.json()).then(options.mapResToData).then((res)=>{
+                    })).then(res=>res.json()).then((res)=>{
                         dispatch({
                             type:"grid/model/put",
                             value:{
                                 modelPath,
-                                gridName:this.gridName,
                                 key:options.key,
-                                model:res
+                                model:options.mapResToData(res,'put')
                             }
-                        })
+                        });
+                        return res;
                     },this.errorHandler.bind(this))
             });
-        this['post']= options.methods.post || ((data)=>{
-                return fetch(url+keyValueToQueryParams(this.config.params), Object.assign(this.config,{
+        this.post= options.methods.post || ((data)=>{
+                return fetch(url, Object.assign({},this.config,{
+                    method:"POST",
                     body:JSON.stringify(data)
-                })).then(res=>res.json()).then(options.mapResToData).then((res)=>{
+                })).then(res=>res.json()).then((res)=>{
                     dispatch({
                         type:"grid/model/post",
                         value:{
                             modelPath,
-                            gridName:this.gridName,
                             key:options.key,
-                            model:res
+                            model:options.mapResToData(res,'post')
                         }
-                    })
+                    });
+                    return res;
                 },this.errorHandler.bind(this))
             });
 
         if(actions) {
             let Action = RestfulActionClassFactory(url);
-            this.actions = actions.map((action)=> {
-                return Action(action,()=>this.config,this.options.key)
+            this.actions = {} as any;
+            Object.keys(actions).forEach((actionName)=> {
+                this.actions[actionName]=Action(actionName,actions[actionName],this.gridName,this.config,this.params,this.options.key,modelPath,fetch,this.options.mapResToData)
             });
         }
     }
@@ -214,6 +229,6 @@ export class RestfulResource<T> implements Resource<T>{
         throw err;
     }
     filter(_filter){
-        this.config.params = this.options.params?this.options.params(_filter):_filter;
+        this.params = this.options.params?this.options.params(_filter):_filter;
     }
 }

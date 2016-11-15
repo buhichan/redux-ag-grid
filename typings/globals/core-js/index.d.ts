@@ -198,7 +198,7 @@ interface String {
 
     /**
       * Returns a String value that is made from count copies appended together. If count is 0,
-      * T is the empty String is returned.
+      * Model is the empty String is returned.
       * @param count number of copies to append
       */
     repeat(count: number): string;
@@ -1162,7 +1162,7 @@ declare var log: Log;
 interface Dict<T> {
     [key: string]: T;
     [key: number]: T;
-    //[key: symbol]: T;
+    //[key: symbol]: Model;
 }
 
 interface DictConstructor {

@@ -7,8 +7,11 @@ import {Grid} from "../index.ts"
 import ReactDOM from "react-dom"
 import {createStore} from "redux"
 import {Provider} from "react-redux"
-import {GridReducer,RestfulResource} from "../index"
+import {GridReducerFactory,RestfulResource} from "../index"
 import {Map} from "immutable"
+
+let GridReducer = GridReducerFactory(x=>x._id);
+
 let store = createStore((state,action)=>{
     let res = state?state:{
         people:[],

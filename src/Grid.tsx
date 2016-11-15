@@ -34,15 +34,16 @@ export interface GridFilter{
 }
 
 export type columnType = "select"|"checkbox"|"date"|"datetime-local"|null
-
+export type Options = {name:string,value:string}[]
+export type AsyncOptions = {
+    url:string,
+    mapResToOptions?:(res:any)=>Options
+};
 export interface GridFieldSchema{
     type?:columnType,
     key:string,
     label:string,
-    options?:{
-        name:string,
-        value:string
-    }[] | string
+    options?:Options | AsyncOptions
 }
 
 export interface GridState{
@@ -51,13 +52,14 @@ export interface GridState{
     filter?:GridFilter
     selectAll?:boolean
 }
+
 export interface GridProp<T>{
-    gridName:string,
+    gridName?:string,
     store?:Immutable.Map<any,any>,
     resource?:Resource<T>,
     modelPath?:string[]
     schema?:GridFieldSchema[],
-    actions?:ActionInstance<T>[],
+    actions?:(ActionInstance<T>|string)[],
     onCellClick?:(...args:any[])=>any
     onCellDblClick?:(...args:any[])=>any
     dispatch?:Dispatch<any>
@@ -152,13 +154,16 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 }
                 return colDef;
             };
-            if(typeof column.options === "string"){
-                return Promise.resolve(fetch(column.options as string,{
+            if(column.options && !(column.options instanceof Array)){
+                let asyncOptions = column.options as AsyncOptions;
+                return Promise.resolve(fetch(asyncOptions.url,{
                     method:"GET",
                     headers:{
                         "Content-Type":"applicatoin/json"
                     }
-                })).then(res=>res.json()).then(parseField)
+                })).then(res=>res.json()).then(res=>{
+                    return parseField(asyncOptions.mapResToOptions?asyncOptions.mapResToOptions(res):res)
+                })
             }else
                 return Promise.resolve(parseField(column.options))
         }))
@@ -166,20 +171,24 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     getActions(){
         let staticActions:ActionInstance<T>[] = [];
         let rowActions:ActionInstance<T>[] = [];
-        let restResource = this.props.resource as RestfulResource<T>;
-        if(restResource.actions)
-            restResource.actions.forEach(action=>{
-                if(action.isStatic)
-                    staticActions.push(action);
-                else
-                    rowActions.push(action);
-            });
+        let restResource = this.props.resource as RestfulResource<T,any>;
         if(this.props.actions)
             this.props.actions.forEach(action=>{
-                if(action.isStatic)
-                    staticActions.push(action);
+                if(action === 'delete') {
+                    let deleteAction =(data)=>{
+                        return this.props.resource.delete(data)
+                    };
+                    deleteAction['displayName']='删除';
+                    rowActions.push(deleteAction);
+                } else if(typeof action === 'string' && restResource.actions[action]){
+                    if(restResource.actions[action].isStatic)
+                        staticActions.push(restResource.actions[action]);
+                    else
+                        rowActions.push(restResource.actions[action]);
+                } else if((action as ActionInstance<any>).isStatic)
+                    staticActions.push((action as ActionInstance<any>));
                 else
-                    rowActions.push(action);
+                    rowActions.push((action as ActionInstance<any>));
             });
         return {
             staticActions,
@@ -240,7 +249,7 @@ class ActionCell extends React.Component<any,any>{
                     <button key={i} className="btn btn-sm btn-primary"
                         ref={(ref)=>{
                             ref&&ref.addEventListener('click',(e)=>{
-                                action(action.useSelected?this.props.context.getSelected():this.props.data,this.props.context.dispatch)
+                                action(action.useSelected?this.props.context.getSelected():this.props.data,this.props.context.dispatch);
                                 e.stopPropagation();
                             })
                         }}>{action.displayName}</button>)

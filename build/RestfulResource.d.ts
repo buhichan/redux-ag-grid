@@ -18,23 +18,30 @@ export interface ActionResourceOptions<T> {
     methods?: Resource<T>;
     apiType?: APIType;
     fetch?: typeof fetch;
-    mapResToData?: (any) => any;
+    mapResToData?: (data: any, methodType?: "post" | "get" | "count" | "put" | "delete") => any;
 }
-export declare class RestfulResource<T> implements Resource<T> {
+export declare class RestfulResource<Model, Actions> implements Resource<Model> {
     params: {};
-    options: any;
-    config: RequestInit & {
-        params: any;
+    options: ActionResourceOptions<Model>;
+    config: RequestInit;
+    actions: Actions & {
+        [actionName: string]: ActionInstance<Model>;
     };
-    actions: ActionInstance<T>[];
     modelPath: string[];
     gridName: string;
-    constructor({url, modelPath, dispatch, actions, options}: {
+    get?: () => Promise<void>;
+    post?: (model: Model) => Promise<void>;
+    put?: (model: Model) => Promise<void>;
+    delete?: (model: Model) => Promise<void>;
+    count?: () => Promise<void>;
+    constructor({url, modelPath, dispatch, options, actions}: {
         url: string;
         modelPath: string[];
         dispatch: Dispatch<any>;
-        actions: RestfulActionDef<T>[];
-        options: ActionResourceOptions<T>;
+        options: ActionResourceOptions<Model>;
+        actions?: Actions & {
+            [actionName: string]: RestfulActionDef<Model>;
+        };
     });
     errorHandler(err: any): void;
     filter(_filter: any): void;

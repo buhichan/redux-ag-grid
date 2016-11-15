@@ -25,7 +25,7 @@ export function deepGetState(rootState,...keys){
 export function deepSetState(state,data,...keys){
     if(!keys || !keys.length) return data;
     let nextKey = keys.shift();
-    let prevState = getImmuOrPOJO(state,nextKey);
+    let prevState = getImmuOrPOJO(state,nextKey) || {};
     let nextState = deepSetState(prevState,data,...keys);
     if(prevState !== nextState)
         return setImmuOrPOJO(state,nextState,nextKey);

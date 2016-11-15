@@ -7,9 +7,9 @@ var Utils_1 = require("./Utils");
 var RestfulResource = (function () {
     function RestfulResource(_a) {
         var _this = this;
-        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, actions = _a.actions, _b = _a.options, options = _b === void 0 ? {} : _b;
+        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, _b = _a.options, options = _b === void 0 ? {} : _b, actions = _a.actions;
         this.params = {};
-        this.config = { params: {} };
+        this.config = {};
         if (url.substr(-1) !== '/')
             url += '/';
         options.methods = options.methods || {};
@@ -62,9 +62,9 @@ var RestfulResource = (function () {
                     return { filter: _filter };
                 };
                 options.methods.count = options.methods.count || (function () {
-                    if (_this.config.params && _this.config.params.filter)
-                        _this.config.params.where = _this.config.params.filter.where;
-                    return fetch(url + '/count' + Utils_1.keyValueToQueryParams(options.params(_this.config.params)), _this.config)
+                    if (_this.params && _this.params['filter'])
+                        _this.params['where'] = _this.params['filter'].where;
+                    return fetch(url + '/count' + Utils_1.keyValueToQueryParams(options.params(_this.params)), _this.config)
                         .then(function (res) { return res.json(); }).then(options.mapResToData).then(function (res) {
                         dispatch({
                             type: "grid/model/count",
@@ -93,87 +93,91 @@ var RestfulResource = (function () {
             }
         }
         //TODO catch exception
-        this['get'] = options.methods.get || (function () {
-            return fetch(url + Utils_1.keyValueToQueryParams(_this.config.params), _this.config)
-                .then(function (res) { return res.json(); }).then(options.mapResToData).then(function (res) {
+        this.get = options.methods.get || (function () {
+            return fetch(url + Utils_1.keyValueToQueryParams(_this.params), _this.config)
+                .then(function (res) { return res.json(); }).then(function (res) {
                 dispatch({
                     type: "grid/model/get",
                     value: {
                         modelPath: modelPath,
-                        gridName: _this.gridName,
                         key: options.key,
-                        models: res
+                        models: options.mapResToData(res, 'get')
                     }
                 });
+                return res;
             }, _this.errorHandler.bind(_this));
         });
-        this['count'] = options.methods.count || (function () {
-            return fetch(url + '/count' + Utils_1.keyValueToQueryParams(_this.config.params), _this.config)
-                .then(function (res) { return res.json(); }).then(options.mapResToData).then(function (res) {
+        this.count = options.methods.count || (function () {
+            return fetch(url + 'count' + Utils_1.keyValueToQueryParams(_this.params), _this.config)
+                .then(function (res) { return res.json(); }).then(function (res) {
                 dispatch({
                     type: "grid/model/count",
                     value: {
                         modelPath: modelPath,
                         gridName: _this.gridName,
                         key: options.key,
-                        count: res
+                        count: options.mapResToData(res, 'count')
                     }
                 });
+                return res;
             }, _this.errorHandler.bind(_this));
         });
-        this['delete'] = options.methods.delete || (function (data) {
-            return fetch(url + '/' + options.key(data) + Utils_1.keyValueToQueryParams(_this.config.params), Object.assign(_this.config, {
+        this.delete = options.methods.delete || (function (data) {
+            return fetch(url + options.key(data), Object.assign({}, _this.config, {
                 method: "DELETE"
-            })).then(function (res) { return res.json(); }).then(options.mapResToData).then(function (res) {
-                if (res)
+            })).then(function (res) { return res.json(); }).then(function (res) {
+                if (options.mapResToData(res, 'delete'))
                     dispatch({
                         type: "grid/model/delete",
                         value: {
                             modelPath: modelPath,
-                            gridName: _this.gridName,
                             key: options.key,
                             model: data
                         }
                     });
+                return res;
             }, _this.errorHandler.bind(_this));
         });
-        this['put'] = options.methods.put || (function (data) {
+        this.put = options.methods.put || (function (data) {
             if (!options.key(data))
                 return _this['post'](data);
             else
-                return fetch(url + '/' + options.key(data) + Utils_1.keyValueToQueryParams(_this.config.params), Object.assign(_this.config, {
+                return fetch(url + options.key(data), Object.assign({}, _this.config, {
+                    method: "PUT",
                     body: JSON.stringify(data)
-                })).then(function (res) { return res.json(); }).then(options.mapResToData).then(function (res) {
+                })).then(function (res) { return res.json(); }).then(function (res) {
                     dispatch({
                         type: "grid/model/put",
                         value: {
                             modelPath: modelPath,
-                            gridName: _this.gridName,
                             key: options.key,
-                            model: res
+                            model: options.mapResToData(res, 'put')
                         }
                     });
+                    return res;
                 }, _this.errorHandler.bind(_this));
         });
-        this['post'] = options.methods.post || (function (data) {
-            return fetch(url + Utils_1.keyValueToQueryParams(_this.config.params), Object.assign(_this.config, {
+        this.post = options.methods.post || (function (data) {
+            return fetch(url, Object.assign({}, _this.config, {
+                method: "POST",
                 body: JSON.stringify(data)
-            })).then(function (res) { return res.json(); }).then(options.mapResToData).then(function (res) {
+            })).then(function (res) { return res.json(); }).then(function (res) {
                 dispatch({
                     type: "grid/model/post",
                     value: {
                         modelPath: modelPath,
-                        gridName: _this.gridName,
                         key: options.key,
-                        model: res
+                        model: options.mapResToData(res, 'post')
                     }
                 });
+                return res;
             }, _this.errorHandler.bind(_this));
         });
         if (actions) {
             var Action_1 = ActionClassFactory_1.RestfulActionClassFactory(url);
-            this.actions = actions.map(function (action) {
-                return Action_1(action, function () { return _this.config; }, _this.options.key);
+            this.actions = {};
+            Object.keys(actions).forEach(function (actionName) {
+                _this.actions[actionName] = Action_1(actionName, actions[actionName], _this.gridName, _this.config, _this.params, _this.options.key, modelPath, fetch, _this.options.mapResToData);
             });
         }
     }
@@ -181,7 +185,7 @@ var RestfulResource = (function () {
         throw err;
     };
     RestfulResource.prototype.filter = function (_filter) {
-        this.config.params = this.options.params ? this.options.params(_filter) : _filter;
+        this.params = this.options.params ? this.options.params(_filter) : _filter;
     };
     return RestfulResource;
 }());
