@@ -17,3 +17,5 @@ exports.deepSetState = Utils_1.deepSetState;
 exports.deepGetState = Utils_1.deepGetState;
 exports.setImmuOrPOJO = Utils_1.setImmuOrPOJO;
 exports.getImmuOrPOJO = Utils_1.getImmuOrPOJO;
+var themes = require("./build/themes");
+exports.setTheme = themes.setTheme;

@@ -1,11 +1,12 @@
 import "./Grid.css";
 import "ag-grid/dist/styles/ag-grid.css";
-import "ag-grid/dist/styles/theme-bootstrap.css";
 import { Component } from "react";
 import { AbstractColDef, GridApi, ColumnApi } from "ag-grid";
 import { Resource } from "./RestfulResource";
 import { ActionInstance } from "./ActionClassFactory";
 import Dispatch = Redux.Dispatch;
+import { ITheme } from "./themes";
+import "./themes/Bootstrap";
 export interface GridFilter {
     quickFilterText?: string;
     pagination?: {
@@ -39,9 +40,10 @@ export interface GridFieldSchema {
 }
 export interface GridState {
     quickFilterText?: string;
-    parsedSchema?: AbstractColDef[];
-    filter?: GridFilter;
+    gridOptions?: any;
+    themeRenderer: ITheme;
     selectAll?: boolean;
+    staticActions: ActionInstance<any>[];
 }
 export interface GridProp<T> {
     gridName?: string;
@@ -54,23 +56,17 @@ export interface GridProp<T> {
     onCellDblClick?: (...args: any[]) => any;
     dispatch?: Dispatch<any>;
     height?: number;
+    serverSideFilter?: boolean;
 }
 export declare class Grid<T> extends Component<GridProp<T>, GridState> {
-    getModels(): any;
     gridApi: GridApi;
     columnApi: ColumnApi;
-    state: {
-        quickFilterText: string;
-        parsedSchema: any[];
-        filter: {
-            pagination: {
-                limit: number;
-                offset: number;
-            };
-        };
-        selectAll: boolean;
-    };
-    componentDidMount(): void;
+    state: GridState;
+    componentWillMount(): void;
+    componentWillUnmount(): void;
+    onReady(schema: any): void;
+    setState(P: any, c?: any): void;
+    isUnmounting: boolean;
     componentWillReceiveProps(newProps: GridProp<T>): void;
     parseSchema(schema: GridFieldSchema[]): Promise<AbstractColDef[]>;
     getActions(): {

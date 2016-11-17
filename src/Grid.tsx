@@ -4,9 +4,9 @@
 "use strict";
 import "./Grid.css"
 import "ag-grid/dist/styles/ag-grid.css"
-import "ag-grid/dist/styles/theme-bootstrap.css"
 import {Component} from "react"
 import * as React from "react"
+import {IGetRowsParams} from "ag-grid"
 import {AgGridReact as AgGrid} from "ag-grid-react"
 import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
 import {Resource, RestfulResource} from "./RestfulResource"
@@ -15,6 +15,8 @@ import {deepGetState} from "./Utils";
 import {EnumFilter, DateFilter} from "./GridFilters";
 import {ActionInstance} from "./ActionClassFactory";
 import Dispatch = Redux.Dispatch;
+import {currentTheme, ITheme} from "./themes"
+import "./themes/Bootstrap"
 
 export interface GridFilter{
     quickFilterText?:string,
@@ -48,9 +50,10 @@ export interface GridFieldSchema{
 
 export interface GridState{
     quickFilterText?:string,
-    parsedSchema?:AbstractColDef[],
-    filter?:GridFilter
-    selectAll?:boolean
+    gridOptions?:any,
+    themeRenderer:ITheme,
+    selectAll?:boolean,
+    staticActions:ActionInstance<any>[]
 }
 
 export interface GridProp<T>{
@@ -63,43 +66,108 @@ export interface GridProp<T>{
     onCellClick?:(...args:any[])=>any
     onCellDblClick?:(...args:any[])=>any
     dispatch?:Dispatch<any>
-    height?:number
+    height?:number,
+    serverSideFilter?:boolean
+}
+
+function getModel(store,modelPath){
+    let data = deepGetState(store,...modelPath);
+    if(data.toArray)
+        data = data.toArray();
+    return data;
 }
 
 @connect(
     store=>({store})
 )
 export class Grid<T> extends Component<GridProp<T>,GridState>{
-    getModels(){
-        return deepGetState(this.props.store,...this.props.modelPath||this.props.resource['modelPath'])
-    }
     gridApi:GridApi;
     columnApi:ColumnApi;
-    state={
+    state:GridState={
         quickFilterText:'',
-        parsedSchema:[],
-        filter:{
-            pagination:{
-                limit:20,
-                offset:0
-            }
+        gridOptions:{
+            colDef:[],
+            suppressNoRowsOverlay:true,
+            rowData:[],
+            onRowDblClicked:this.props.onCellDblClick,
+            paginationPageSize:20,
+            rowHeight:40,
+            onGridReady:params=>{this.gridApi=params.api;this.columnApi=params.columnApi},
+            onColumnEverythingChanged:()=>this.gridApi&&this.gridApi.sizeColumnsToFit(),
+            rowSelection:"multiple",
+            enableSorting:"true",
+            enableFilter:"true",
         },
-        selectAll:false
+        themeRenderer:currentTheme(),
+        selectAll:false,
+        staticActions:[]
     };
-    componentDidMount(){
+    componentWillMount(){
         if(!this.props.resource)
             throw new Error("请使用ResourceAdapterService构造一个Resource");
         if(!this.props.modelPath && !this.props.resource['modelPath'])
             throw new Error("请声明modelPath:string[]");
-        this.props.resource.filter(this.state.filter);
         this.props.resource.get();
         this.props.resource['gridName'] = this.props.gridName || ('grid'+Math.random());
         this.parseSchema(this.props.schema).then((parsed)=>{
-            this.setState({
-                parsedSchema:parsed
-            })
+            this.onReady(parsed)
         });
     }
+    componentWillUnmount(){
+        this.isUnmounting = true;
+    }
+    onReady(schema){
+        let {staticActions,rowActions} = this.getActions();
+        let columnDefs = schema && schema.length?schema.concat([{
+            headerName:"",
+            suppressFilter:true,
+            suppressMenu:true,
+            suppressSorting:true,
+            cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
+        }]):[];
+        const gridOptions = Object.assign(this.state.gridOptions,{
+            quickFilterText:this.state.quickFilterText,
+            columnDefs:columnDefs,
+            context:{
+                getSelected:()=>this.gridApi.getSelectedRows(),
+                dispatch:this.props.dispatch,
+                rowActions
+            },
+        });
+        if(this.props.serverSideFilter){
+            gridOptions['rowModelType']='virtual';
+            gridOptions['datasource'] = {
+                getRows:(params:IGetRowsParams)=>{
+                    let data = getModel(this.props.store,this.props.modelPath||this.props.resource['modelPath']);
+                    if(data.length < params.endRow) {
+                        const resource = this.props.resource as RestfulResource<T,any>;
+                        resource.filter({
+                            pagination:{
+                                offset:params.startRow,
+                                limit:params.endRow-params.startRow
+                            }
+                        });
+                        resource.get().then(()=>{
+                            let data = getModel(this.props.store,this.props.modelPath||this.props.resource['modelPath']);
+                            params.successCallback(data.slice(params.startRow,params.endRow), data.length<=params.endRow?data.length:undefined );
+                        });
+                    }
+                    else
+                        params.successCallback(data.slice(params.startRow,params.endRow));
+                }
+            };
+        }else
+            gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+        this.setState({
+            staticActions,
+            gridOptions,
+        })
+    }
+    setState(P,c?){
+        if(this.isUnmounting) return;
+        else super.setState(P,c);
+    }
+    isUnmounting=false;
     componentWillReceiveProps(newProps:GridProp<T>){
         if(newProps.schema!==this.props.schema)
             this.parseSchema(this.props.schema).then((parsed)=>{
@@ -117,25 +185,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 };
                 switch (column.type){
                     case "select":
-                            colDef['cellRenderer'] = function (params) {
-                                let colors = ['primary', 'success', 'warning', 'info', 'danger'];
-                                let target;
-                                if (params.value instanceof Array)
-                                    target = params.value;
-                                else
-                                    target = [params.value];
-                                return target.reduce((prev, cur)=> {
-                                    let index = 0;
-                                    options.every((option, i)=> {
-                                        if (option.value === cur) {
-                                            index = i;
-                                            return false;
-                                        }
-                                        return true;
-                                    });
-                                    return prev + `<label class="label label-${colors[index % colors.length]}">${options[index].name}</label>`
-                                }, "");
-                            };
+                            colDef['cellRendererFramework'] = this.state.themeRenderer.SelectFieldRenderer(options);
                             colDef['options'] = column.options;
                             colDef['filterFramework'] = EnumFilter;
                     break;
@@ -196,64 +246,21 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
         }
     }
     render(){
-        let {staticActions,rowActions} = this.getActions();
-        return <div className={"redux-ag-grid ag-bootstrap panel panel-default"}>
-            <div className="panel-heading clearfix">
-                <div className="pull-left">
-                    <button className="btn btn-default" onClick={()=>{
+        let {staticActions,gridOptions} = this.state;
+        if(!this.props.serverSideFilter)
+            gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+        let GridRenderer = this.state.themeRenderer.GridRenderer;
+        return <GridRenderer
+            actions={staticActions}
+            onSelectAll={()=>{
                         this.state.selectAll?this.gridApi.deselectAll():this.gridApi.selectAll();
                         this.state.selectAll = !this.state.selectAll;
-                    }}>全选/取消</button>
-                </div>
-                <div className="btn-group btn-group-sm pull-right">
-                    {
-                        staticActions.map((action, i)=>
-                        <button key={i} className="btn btn-default"
-                                onClick={()=>action(this.gridApi.getSelectedRows(),this.props.dispatch)}>{action.displayName}</button>)
-                    }
-                </div>
-            </div>
-            <div className="panel-body" style={{height:(this.props.height||600)+"px"}}>
-                <AgGrid
-                    onRowDblClicked={this.props.onCellDblClick}
-                    quickFilterText={this.state.quickFilterText}
-                    columnDefs={this.state.parsedSchema.concat([{
-                        headerName:"",
-                        suppressFilter:true,
-                        suppressMenu:true,
-                        suppressSorting:true,
-                        cellRendererFramework:ActionCell
-                    }])}
-                    rowData={this.getModels()}
-                    rowHeight={40}
-                    context={{
-                        getSelected:()=>this.gridApi.getSelectedRows(),
-                        dispatch:this.props.dispatch,
-                        rowActions
                     }}
-                    onGridReady={params=>{this.gridApi=params.api;this.columnApi=params.columnApi}}
-                    onColumnEverythingChanged={()=>this.gridApi&&this.gridApi.sizeColumnsToFit()}
-                    rowSelection="multiple"
-                    enableSorting="true"
-                    enableFilter="true"/>
-            </div>
-        </div>
-    }
-}
-
-class ActionCell extends React.Component<any,any>{
-    render(){
-        return <div className="btn-actions">
-            {
-                this.props.context.rowActions.filter(action=>!action.enabled||action.enabled(this.props.data)).map((action, i)=>
-                    <button key={i} className="btn btn-sm btn-primary"
-                        ref={(ref)=>{
-                            ref&&ref.addEventListener('click',(e)=>{
-                                action(action.useSelected?this.props.context.getSelected():this.props.data,this.props.context.dispatch);
-                                e.stopPropagation();
-                            })
-                        }}>{action.displayName}</button>)
-            }
-        </div>
+            dispatch={this.props.dispatch}
+            gridApi={this.gridApi}
+            height={this.props.height}
+        >
+            <AgGrid {...gridOptions}/>
+        </GridRenderer>;
     }
 }

@@ -19,13 +19,14 @@
     "reactjs",
     "bootstrap"
   ],
+  "peerDependencies": {
+    "react": "^15.3.2",
+    "react-dom": "^15.3.2",
+    "bootstrap": "~3.3.7"
+  },
   "dependencies": {
     "ag-grid": "^6.0.1",
     "ag-grid-react": "^6.0.1",
-    "bootstrap": "~3.3.7",
-    "react": "^15.3.2",
-    "react-dom": "^15.3.2",
-    "restful.js": "^0.9.6",
     "whatwg-fetch": "^1.0.0"
   },
   "devDependencies": {
