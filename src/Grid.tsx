@@ -210,7 +210,8 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 return colDef;
             };
             if(column.options && !(column.options instanceof Array)){
-                let asyncOptions = column.options as AsyncOptions;
+                const asyncOptions = column.options as AsyncOptions;
+                const fetch = (this.props.resource && this.props.resource['_fetch']) || window.fetch;
                 return Promise.resolve(fetch(asyncOptions.url,{
                     method:"GET",
                     headers:{

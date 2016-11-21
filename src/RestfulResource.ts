@@ -41,6 +41,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     delete?:(model:Model)=>Promise<void>;
     count?:()=>Promise<void>;
 
+    _fetch:typeof window.fetch;
     constructor({
         url,
         modelPath,
@@ -58,7 +59,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         options.methods = options.methods || {};
         options.key = options.key || (x=>x['id']);
         options.mapResToData = options.mapResToData || (x=>x);
-        let fetch = options.fetch || window.fetch;
+        this._fetch = options.fetch || window.fetch;
         this.options = options;
         this.modelPath = modelPath;
         switch(options.apiType){
@@ -107,7 +108,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 options.methods.count = options.methods.count || (()=> {
                     if (this.params && this.params['filter'])
                         this.params['where'] = this.params['filter'].where;
-                    return fetch(url + '/count'+keyValueToQueryParams(options.params(this.params)),this.config)
+                    return this._fetch(url + '/count'+keyValueToQueryParams(options.params(this.params)),this.config)
                         .then(res=>res.json()).then(options.mapResToData).then((res)=>{
                         dispatch({
                             type:"grid/model/count",
@@ -137,7 +138,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         }
         //TODO catch exception
         this.get = options.methods.get || ((id?)=>{
-                return fetch(url+(id!==undefined?id:"")+keyValueToQueryParams(this.params),this.config)
+                return this._fetch(url+(id!==undefined?id:"")+keyValueToQueryParams(this.params),this.config)
                     .then(res=>res.json()).then((res)=>{
                     dispatch({
                         type:"grid/model/get",
@@ -151,7 +152,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 },this.errorHandler.bind(this))
             });
         this.count = options.methods.count || (()=>{
-                return fetch(url + 'count'+keyValueToQueryParams(this.params),this.config)
+                return this._fetch(url + 'count'+keyValueToQueryParams(this.params),this.config)
                     .then(res=>res.json()).then((res)=>{
                     dispatch({
                         type:"grid/model/count",
@@ -166,7 +167,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 },this.errorHandler.bind(this))
             });
         this.delete = options.methods.delete || ((data)=>{
-                return fetch(url + options.key(data), Object.assign({},this.config,{
+                return this._fetch(url + options.key(data), Object.assign({},this.config,{
                     method:"DELETE"
                 })).then(res=>res.json()).then((res)=>{
                     if(options.mapResToData(res,'delete'))
@@ -185,7 +186,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 if(!options.key(data))
                     return this['post'](data);
                 else
-                    return fetch(url +options.key(data), Object.assign({},this.config,{
+                    return this._fetch(url +options.key(data), Object.assign({},this.config,{
                         method:"PUT",
                         body:JSON.stringify(data)
                     })).then(res=>res.json()).then((res)=>{
@@ -201,7 +202,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                     },this.errorHandler.bind(this))
             });
         this.post= options.methods.post || ((data)=>{
-                return fetch(url, Object.assign({},this.config,{
+                return this._fetch(url, Object.assign({},this.config,{
                     method:"POST",
                     body:JSON.stringify(data)
                 })).then(res=>res.json()).then((res)=>{
@@ -221,7 +222,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             let Action = RestfulActionClassFactory(url);
             this.actions = {} as any;
             Object.keys(actions).forEach((actionName)=> {
-                this.actions[actionName]=Action(actionName,actions[actionName],this.gridName,this.config,this.params,this.options.key,modelPath,fetch,this.options.mapResToData)
+                this.actions[actionName]=Action(actionName,actions[actionName],this.gridName,this.config,this.params,this.options.key,modelPath,this._fetch,this.options.mapResToData)
             });
         }
     }
