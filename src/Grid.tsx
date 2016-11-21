@@ -67,7 +67,8 @@ export interface GridProp<T>{
     onCellDblClick?:(...args:any[])=>any
     dispatch?:Dispatch<any>
     height?:number,
-    serverSideFilter?:boolean
+    serverSideFilter?:boolean,
+    data?:T[]
 }
 
 function getModel(store,modelPath){
@@ -103,13 +104,15 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
         staticActions:[]
     };
     componentWillMount(){
-        if(!this.props.resource)
-            throw new Error("请使用ResourceAdapterService构造一个Resource");
-        if(!this.props.modelPath && !this.props.resource['modelPath'])
-            throw new Error("请声明modelPath:string[]");
-        this.props.resource.get();
-        this.props.resource['gridName'] = this.props.gridName || ('grid'+Math.random());
-        this.parseSchema(this.props.schema).then((parsed)=>{
+        if(!this.props.resource && !this.props.data) {
+            throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
+        }else if(this.props.resource){
+            if (!this.props.modelPath && !this.props.resource['modelPath'])
+                throw new Error("请声明modelPath:string[]");
+            this.props.resource.get();
+            this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
+        }
+        this.parseSchema(this.props.schema).then((parsed)=> {
             this.onReady(parsed)
         });
     }
@@ -134,30 +137,32 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 rowActions
             },
         });
-        if(this.props.serverSideFilter){
-            gridOptions['rowModelType']='virtual';
-            gridOptions['datasource'] = {
-                getRows:(params:IGetRowsParams)=>{
-                    let data = getModel(this.props.store,this.props.modelPath||this.props.resource['modelPath']);
-                    if(data.length < params.endRow) {
-                        const resource = this.props.resource as RestfulResource<T,any>;
-                        resource.filter({
-                            pagination:{
-                                offset:params.startRow,
-                                limit:params.endRow-params.startRow
-                            }
-                        });
-                        resource.get().then(()=>{
-                            let data = getModel(this.props.store,this.props.modelPath||this.props.resource['modelPath']);
-                            params.successCallback(data.slice(params.startRow,params.endRow), data.length<=params.endRow?data.length:undefined );
-                        });
+        if(this.props.resource) {
+            if (this.props.serverSideFilter) {
+                gridOptions['rowModelType'] = 'virtual';
+                gridOptions['datasource'] = {
+                    getRows: (params: IGetRowsParams)=> {
+                        let data = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                        if (data.length < params.endRow) {
+                            const resource = this.props.resource as RestfulResource<T,any>;
+                            resource.filter({
+                                pagination: {
+                                    offset: params.startRow,
+                                    limit: params.endRow - params.startRow
+                                }
+                            });
+                            resource.get().then(()=> {
+                                let data = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                                params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
+                            });
+                        }
+                        else
+                            params.successCallback(data.slice(params.startRow, params.endRow));
                     }
-                    else
-                        params.successCallback(data.slice(params.startRow,params.endRow));
-                }
-            };
-        }else
-            gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                };
+            } else
+                gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+        }
         this.setState({
             staticActions,
             gridOptions,
@@ -247,8 +252,10 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     }
     render(){
         let {staticActions,gridOptions} = this.state;
-        if(!this.props.serverSideFilter)
+        if(!this.props.serverSideFilter && this.props.resource)
             gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+        else if(this.props.data)
+            gridOptions['rowData'] = this.props.data;
         let GridRenderer = this.state.themeRenderer.GridRenderer;
         return <GridRenderer
             actions={staticActions}

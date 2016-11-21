@@ -10,7 +10,7 @@ import {Dispatch} from "redux";
 export type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null
 
 export interface Resource<T>{
-    get?:()=>Promise<void>,
+    get?:(id?)=>Promise<void>,
     post?:(model:T)=>Promise<void>,
     put?:(model:T)=>Promise<void>,
     delete?:(model:T)=>Promise<void>
@@ -35,7 +35,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     modelPath:string[];
     gridName:string;
 
-    get?:()=>Promise<void>;
+    get?:(id?)=>Promise<void>;
     post?:(model:Model)=>Promise<void>;
     put?:(model:Model)=>Promise<void>;
     delete?:(model:Model)=>Promise<void>;
@@ -136,8 +136,8 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             }
         }
         //TODO catch exception
-        this.get = options.methods.get || (()=>{
-                return fetch(url+keyValueToQueryParams(this.params),this.config)
+        this.get = options.methods.get || ((id?)=>{
+                return fetch(url+(id!==undefined?id:"")+keyValueToQueryParams(this.params),this.config)
                     .then(res=>res.json()).then((res)=>{
                     dispatch({
                         type:"grid/model/get",

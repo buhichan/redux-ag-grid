@@ -68,12 +68,15 @@ var Grid = (function (_super) {
     }
     Grid.prototype.componentWillMount = function () {
         var _this = this;
-        if (!this.props.resource)
-            throw new Error("请使用ResourceAdapterService构造一个Resource");
-        if (!this.props.modelPath && !this.props.resource['modelPath'])
-            throw new Error("请声明modelPath:string[]");
-        this.props.resource.get();
-        this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
+        if (!this.props.resource && !this.props.data) {
+            throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
+        }
+        else if (this.props.resource) {
+            if (!this.props.modelPath && !this.props.resource['modelPath'])
+                throw new Error("请声明modelPath:string[]");
+            this.props.resource.get();
+            this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
+        }
         this.parseSchema(this.props.schema).then(function (parsed) {
             _this.onReady(parsed);
         });
@@ -100,31 +103,33 @@ var Grid = (function (_super) {
                 rowActions: rowActions
             },
         });
-        if (this.props.serverSideFilter) {
-            gridOptions['rowModelType'] = 'virtual';
-            gridOptions['datasource'] = {
-                getRows: function (params) {
-                    var data = getModel(_this.props.store, _this.props.modelPath || _this.props.resource['modelPath']);
-                    if (data.length < params.endRow) {
-                        var resource = _this.props.resource;
-                        resource.filter({
-                            pagination: {
-                                offset: params.startRow,
-                                limit: params.endRow - params.startRow
-                            }
-                        });
-                        resource.get().then(function () {
-                            var data = getModel(_this.props.store, _this.props.modelPath || _this.props.resource['modelPath']);
-                            params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
-                        });
+        if (this.props.resource) {
+            if (this.props.serverSideFilter) {
+                gridOptions['rowModelType'] = 'virtual';
+                gridOptions['datasource'] = {
+                    getRows: function (params) {
+                        var data = getModel(_this.props.store, _this.props.modelPath || _this.props.resource['modelPath']);
+                        if (data.length < params.endRow) {
+                            var resource = _this.props.resource;
+                            resource.filter({
+                                pagination: {
+                                    offset: params.startRow,
+                                    limit: params.endRow - params.startRow
+                                }
+                            });
+                            resource.get().then(function () {
+                                var data = getModel(_this.props.store, _this.props.modelPath || _this.props.resource['modelPath']);
+                                params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
+                            });
+                        }
+                        else
+                            params.successCallback(data.slice(params.startRow, params.endRow));
                     }
-                    else
-                        params.successCallback(data.slice(params.startRow, params.endRow));
-                }
-            };
+                };
+            }
+            else
+                gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
         }
-        else
-            gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
         this.setState({
             staticActions: staticActions,
             gridOptions: gridOptions,
@@ -222,8 +227,10 @@ var Grid = (function (_super) {
     Grid.prototype.render = function () {
         var _this = this;
         var _a = this.state, staticActions = _a.staticActions, gridOptions = _a.gridOptions;
-        if (!this.props.serverSideFilter)
+        if (!this.props.serverSideFilter && this.props.resource)
             gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+        else if (this.props.data)
+            gridOptions['rowData'] = this.props.data;
         var GridRenderer = this.state.themeRenderer.GridRenderer;
         return React.createElement(GridRenderer, {actions: staticActions, onSelectAll: function () {
             _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();

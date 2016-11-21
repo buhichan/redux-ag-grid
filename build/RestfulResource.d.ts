@@ -3,7 +3,7 @@ import { GridFilter } from "./Grid";
 import { Dispatch } from "redux";
 export declare type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null;
 export interface Resource<T> {
-    get?: () => Promise<void>;
+    get?: (id?) => Promise<void>;
     post?: (model: T) => Promise<void>;
     put?: (model: T) => Promise<void>;
     delete?: (model: T) => Promise<void>;
@@ -29,7 +29,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     };
     modelPath: string[];
     gridName: string;
-    get?: () => Promise<void>;
+    get?: (id?) => Promise<void>;
     post?: (model: Model) => Promise<void>;
     put?: (model: Model) => Promise<void>;
     delete?: (model: Model) => Promise<void>;

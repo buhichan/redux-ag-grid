@@ -8,6 +8,7 @@ import Dispatch = Redux.Dispatch;
 import {GridChangePayload} from "./GridReducer";
 
 export interface RestfulActionDef<T> extends BaseActionDef<T>{
+    path?:string,
     method?:string,
     params?:(data:T|T[])=>any,
     data?:(data:T|T[])=>any,
@@ -53,7 +54,9 @@ export function RestfulActionClassFactory<T>(url:string){
             let RequestConfig = Object.assign({
                 method:actionDef.method||"POST"
             },config);
-            if(actionDef.isStatic)
+            if(actionDef.path)
+                action_url += actionDef.path.replace(":id",idGetter(data));
+            else if(actionDef.isStatic)
                 action_url += actionName;
             else
                 action_url += idGetter(data)+"/"+actionName;

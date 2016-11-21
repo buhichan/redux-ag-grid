@@ -57,6 +57,7 @@ export interface GridProp<T> {
     dispatch?: Dispatch<any>;
     height?: number;
     serverSideFilter?: boolean;
+    data?: T[];
 }
 export declare class Grid<T> extends Component<GridProp<T>, GridState> {
     gridApi: GridApi;

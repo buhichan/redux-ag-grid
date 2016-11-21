@@ -22,12 +22,12 @@
   "peerDependencies": {
     "react": "^15.3.2",
     "react-dom": "^15.3.2",
-    "bootstrap": "~3.3.7"
-  },
-  "dependencies": {
-    "ag-grid": "^6.0.1",
-    "ag-grid-react": "^6.0.1",
-    "whatwg-fetch": "^1.0.0"
+    "bootstrap": "~3.3.7",
+    "ag-grid": "^6.4.2",
+    "ag-grid-react": "^6.4.0",
+    "react-redux": "^4.4.6",
+    "whatwg-fetch": "^2.0.0",
+    "immutable": "^3.8.1"
   },
   "devDependencies": {
     "autoprefixer": "~6.4.0",

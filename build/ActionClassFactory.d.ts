@@ -1,5 +1,6 @@
 import Dispatch = Redux.Dispatch;
 export interface RestfulActionDef<T> extends BaseActionDef<T> {
+    path?: string;
     method?: string;
     params?: (data: T | T[]) => any;
     data?: (data: T | T[]) => any;

@@ -93,8 +93,8 @@ var RestfulResource = (function () {
             }
         }
         //TODO catch exception
-        this.get = options.methods.get || (function () {
-            return fetch(url + Utils_1.keyValueToQueryParams(_this.params), _this.config)
+        this.get = options.methods.get || (function (id) {
+            return fetch(url + (id !== undefined ? id : "") + Utils_1.keyValueToQueryParams(_this.params), _this.config)
                 .then(function (res) { return res.json(); }).then(function (res) {
                 dispatch({
                     type: "grid/model/get",

@@ -17,7 +17,9 @@ function RestfulActionClassFactory(url) {
             var RequestConfig = Object.assign({
                 method: actionDef.method || "POST"
             }, config);
-            if (actionDef.isStatic)
+            if (actionDef.path)
+                action_url += actionDef.path.replace(":id", idGetter(data));
+            else if (actionDef.isStatic)
                 action_url += actionName;
             else
                 action_url += idGetter(data) + "/" + actionName;
