@@ -11,17 +11,9 @@ export interface Resource<T> {
     filter?: (filter: GridFilter) => void;
 }
 export interface ActionResourceOptions<T> {
-    key?: (model: T) => string;
-    params?: (filter: GridFilter) => ({
-        [id: string]: any;
-    });
-    methods?: Resource<T>;
-    apiType?: APIType;
-    fetch?: typeof fetch;
-    mapResToData?: (data: any, methodType?: "post" | "get" | "count" | "put" | "delete") => any;
 }
 export declare class RestfulResource<Model, Actions> implements Resource<Model> {
-    params: {};
+    params: (...args: any[]) => any;
     options: ActionResourceOptions<Model>;
     config: RequestInit;
     actions: Actions & {
@@ -29,17 +21,23 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     };
     modelPath: string[];
     gridName: string;
-    get?: (id?) => Promise<void>;
-    post?: (model: Model) => Promise<void>;
-    put?: (model: Model) => Promise<void>;
-    delete?: (model: Model) => Promise<void>;
-    count?: () => Promise<void>;
-    _fetch: typeof window.fetch;
-    constructor({url, modelPath, dispatch, options, actions}: {
+    url: string;
+    key: (model: Model) => string;
+    dispatch: any;
+    mapResToData: (data: any, methodType?: "post" | "get" | "count" | "put" | "delete") => any;
+    fetch: typeof window.fetch;
+    constructor({url, modelPath, dispatch, key, params, methods, apiType, fetch, mapResToData, actions}: {
         url: string;
         modelPath: string[];
         dispatch: Dispatch<any>;
-        options: ActionResourceOptions<Model>;
+        key?;
+        params?: (filter: GridFilter) => ({
+            [id: string]: any;
+        });
+        methods?: Resource<Model>;
+        apiType?: APIType;
+        fetch?: typeof window.fetch;
+        mapResToData?;
         actions?: (Actions & {
             [actionName: string]: RestfulActionDef<Model>;
         }) | Array<RestfulActionDef<Model> & {
@@ -47,6 +45,11 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
             key?: string;
         }>;
     });
+    get(id?: any): Promise<any>;
+    count(): Promise<any>;
+    delete(data: any): Promise<any>;
+    put(data: any): Promise<any>;
+    post(data: any): Promise<any>;
     errorHandler(err: any): void;
     filter(_filter: any): void;
 }
