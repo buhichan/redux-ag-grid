@@ -2,12 +2,10 @@
  * Created by YS on 2016/9/24.
  */
 "use strict";
-import "./Grid.css"
 import "ag-grid/dist/styles/ag-grid.css"
 import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
-import {GridOptions} from "ag-grid/src/ts/entities/gridOptions"
 import {AgGridReact} from "ag-grid-react"
 import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
 import {Resource, RestfulResource} from "./RestfulResource"
@@ -61,7 +59,7 @@ export interface GridProp<T>{
     modelPath?:string[]
     schema?:GridFieldSchema[],
     actions?:(ActionInstance<T>|string)[],
-    gridOptions?:GridOptions,
+    gridOptions?:any,
     dispatch?:Dispatch<any>
     height?:number,
     serverSideFilter?:boolean,

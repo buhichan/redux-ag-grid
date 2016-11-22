@@ -3,6 +3,7 @@
  */
 "use strict";
 
+import "../Grid.css"
 export {Grid as ReduxAgGrid} from "./src/Grid"
 export {RestfulResource} from "./src/RestfulResource"
 export {GridReducer} from "./src/GridReducer"

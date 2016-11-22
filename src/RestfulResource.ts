@@ -7,6 +7,31 @@ import {GridFilter} from "./Grid"
 import {keyValueToQueryParams} from "./Utils";
 import {Dispatch} from "redux";
 
+/**
+ * Created by YS on 2016/11/4.
+ */
+
+declare namespace NodeRestful{
+    export interface Params{
+        offset?:number,
+        limit?:number,
+        sort?:string
+    }
+}
+
+declare namespace Loopback{
+    export interface Params{
+        where:{
+            [searchkey:string]:string | {
+                like?:string
+            }
+        }
+        offset?:number,
+        limit?:number,
+        order?:string
+    }
+}
+
 export type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null
 
 export interface Resource<T>{

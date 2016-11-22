@@ -1,7 +1,5 @@
-import "./Grid.css";
 import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
-import { GridOptions } from "ag-grid/src/ts/entities/gridOptions";
 import { AbstractColDef, GridApi, ColumnApi } from "ag-grid";
 import { Resource } from "./RestfulResource";
 import { ActionInstance } from "./ActionClassFactory";
@@ -50,7 +48,7 @@ export interface GridProp<T> {
     modelPath?: string[];
     schema?: GridFieldSchema[];
     actions?: (ActionInstance<T> | string)[];
-    gridOptions?: GridOptions;
+    gridOptions?: any;
     dispatch?: Dispatch<any>;
     height?: number;
     serverSideFilter?: boolean;
