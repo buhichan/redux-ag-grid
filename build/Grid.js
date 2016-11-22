@@ -42,16 +42,16 @@ function getModel(store, modelPath) {
 }
 var Grid = (function (_super) {
     __extends(Grid, _super);
-    function Grid() {
+    function Grid(props) {
         var _this = this;
-        _super.apply(this, arguments);
+        _super.call(this, props);
+        this.isUnmounting = false;
         this.state = {
             quickFilterText: '',
             gridOptions: {
                 colDef: [],
                 suppressNoRowsOverlay: true,
                 rowData: [],
-                onRowDblClicked: this.props.onCellDblClick,
                 paginationPageSize: 20,
                 rowHeight: 40,
                 onGridReady: function (params) { _this.gridApi = params.api; _this.columnApi = params.columnApi; },
@@ -64,7 +64,7 @@ var Grid = (function (_super) {
             selectAll: false,
             staticActions: []
         };
-        this.isUnmounting = false;
+        Object.assign(this.state.gridOptions, props.gridOptions);
     }
     Grid.prototype.componentWillMount = function () {
         var _this = this;
@@ -179,8 +179,10 @@ var Grid = (function (_super) {
                 }
                 return colDef;
             };
-            if (column.options && typeof column.options === 'function')
-                return column.options().then(parseField);
+            if (column.options && typeof column.options === 'function') {
+                var asyncOptions = column.options;
+                return asyncOptions().then(parseField);
+            }
             else
                 return Promise.resolve(parseField(column.options));
         }));
@@ -232,7 +234,7 @@ var Grid = (function (_super) {
     };
     Grid = __decorate([
         connect(function (store) { return ({ store: store }); }), 
-        __metadata('design:paramtypes', [])
+        __metadata('design:paramtypes', [Object])
     ], Grid);
     return Grid;
 }(react_1.Component));

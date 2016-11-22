@@ -1,4 +1,3 @@
-///<reference path="./src/declares.d.ts" />
 /**
  * Created by YS on 2016/9/24.
  */

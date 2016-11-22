@@ -10,11 +10,12 @@
     "removeComments": false,
     "noImplicitAny": false,
     "jsx": "react",
-    "outDir":"./build"
+    "outDir":"./build",
+    "rootDir":"./src"
   },
   "include":[
     "src/**/*",
     "typings/**/*"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules","example"]
 }

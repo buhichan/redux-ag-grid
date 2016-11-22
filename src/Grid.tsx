@@ -7,6 +7,7 @@ import "ag-grid/dist/styles/ag-grid.css"
 import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
+import {GridOptions} from "ag-grid/src/ts/entities/gridOptions"
 import {AgGridReact as AgGrid} from "ag-grid-react"
 import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
 import {Resource, RestfulResource} from "./RestfulResource"
@@ -60,8 +61,7 @@ export interface GridProp<T>{
     modelPath?:string[]
     schema?:GridFieldSchema[],
     actions?:(ActionInstance<T>|string)[],
-    onCellClick?:(...args:any[])=>any
-    onCellDblClick?:(...args:any[])=>any
+    gridOptions:GridOptions,
     dispatch?:Dispatch<any>
     height?:number,
     serverSideFilter?:boolean,
@@ -81,25 +81,28 @@ function getModel(store,modelPath){
 export class Grid<T> extends Component<GridProp<T>,GridState>{
     gridApi:GridApi;
     columnApi:ColumnApi;
-    state:GridState={
-        quickFilterText:'',
-        gridOptions:{
-            colDef:[],
-            suppressNoRowsOverlay:true,
-            rowData:[],
-            onRowDblClicked:this.props.onCellDblClick,
-            paginationPageSize:20,
-            rowHeight:40,
-            onGridReady:params=>{this.gridApi=params.api;this.columnApi=params.columnApi},
-            onColumnEverythingChanged:()=>this.gridApi&&this.gridApi.sizeColumnsToFit(),
-            rowSelection:"multiple",
-            enableSorting:"true",
-            enableFilter:"true",
-        },
-        themeRenderer:currentTheme(),
-        selectAll:false,
-        staticActions:[]
-    };
+    constructor(props){
+        super(props);
+        this.state = {
+            quickFilterText:'',
+            gridOptions:{
+                colDef:[],
+                suppressNoRowsOverlay:true,
+                rowData:[],
+                paginationPageSize:20,
+                rowHeight:40,
+                onGridReady:params=>{this.gridApi=params.api;this.columnApi=params.columnApi},
+                onColumnEverythingChanged:()=>this.gridApi&&this.gridApi.sizeColumnsToFit(),
+                rowSelection:"multiple",
+                enableSorting:"true",
+                enableFilter:"true",
+            },
+            themeRenderer:currentTheme(),
+            selectAll:false,
+            staticActions:[]
+        };
+        Object.assign(this.state.gridOptions,props.gridOptions)
+    }
     componentWillMount(){
         if(!this.props.resource && !this.props.data) {
             throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
@@ -206,9 +209,10 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 }
                 return colDef;
             };
-            if (column.options && typeof column.options === 'function')
-                return column.options().then(parseField);
-            else
+            if (column.options && typeof column.options === 'function') {
+                const asyncOptions = column.options as AsyncOptions;
+                return asyncOptions().then(parseField);
+            } else
                 return Promise.resolve(parseField(column.options))
         }))
     }

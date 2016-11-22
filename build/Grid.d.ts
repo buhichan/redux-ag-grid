@@ -1,6 +1,7 @@
 import "./Grid.css";
 import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
+import { GridOptions } from "ag-grid/src/ts/entities/gridOptions";
 import { AbstractColDef, GridApi, ColumnApi } from "ag-grid";
 import { Resource } from "./RestfulResource";
 import { ActionInstance } from "./ActionClassFactory";
@@ -49,8 +50,7 @@ export interface GridProp<T> {
     modelPath?: string[];
     schema?: GridFieldSchema[];
     actions?: (ActionInstance<T> | string)[];
-    onCellClick?: (...args: any[]) => any;
-    onCellDblClick?: (...args: any[]) => any;
+    gridOptions: GridOptions;
     dispatch?: Dispatch<any>;
     height?: number;
     serverSideFilter?: boolean;
@@ -59,7 +59,7 @@ export interface GridProp<T> {
 export declare class Grid<T> extends Component<GridProp<T>, GridState> {
     gridApi: GridApi;
     columnApi: ColumnApi;
-    state: GridState;
+    constructor(props: any);
     componentWillMount(): void;
     componentWillUnmount(): void;
     onReady(schema: any): void;
