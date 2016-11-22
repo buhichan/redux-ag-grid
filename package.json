@@ -2,7 +2,7 @@
   "name": "ag-grid-react-preset",
   "version": "1.0.0",
   "description": "a grid",
-  "main": "build/index.js",
+  "main": "index.js",
   "scripts": {
     "dev": "webpack-dev-server --devtool=source-map --host=0.0.0.0 --history-api-fallback --port=8086 --inline --progress",
     "build:dev": "webpack --bail --progress --profile",
