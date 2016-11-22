@@ -179,17 +179,8 @@ var Grid = (function (_super) {
                 }
                 return colDef;
             };
-            if (column.options && !(column.options instanceof Array)) {
-                var asyncOptions_1 = column.options;
-                return Promise.resolve(fetch(asyncOptions_1.url, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "applicatoin/json"
-                    }
-                })).then(function (res) { return res.json(); }).then(function (res) {
-                    return parseField(asyncOptions_1.mapResToOptions ? asyncOptions_1.mapResToOptions(res) : res);
-                });
-            }
+            if (column.options && typeof column.options === 'function')
+                return column.options().then(parseField);
             else
                 return Promise.resolve(parseField(column.options));
         }));

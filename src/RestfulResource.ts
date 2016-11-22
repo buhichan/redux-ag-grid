@@ -53,7 +53,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         modelPath:string[],
         dispatch:Dispatch<any>,
         options:ActionResourceOptions<Model>
-        actions?:Actions & {[actionName:string]:RestfulActionDef<Model>},
+        actions?:(Actions & {[actionName:string]:RestfulActionDef<Model>})|Array<RestfulActionDef<Model>&{name:string,key?:string}>,
     }){
         if (url.substr(-1) !== '/') url += '/';
         options.methods = options.methods || {};
@@ -219,11 +219,16 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             });
 
         if(actions) {
-            let Action = RestfulActionClassFactory(url);
+            let MakeAction = RestfulActionClassFactory(url);
             this.actions = {} as any;
-            Object.keys(actions).forEach((actionName)=> {
-                this.actions[actionName]=Action(actionName,actions[actionName],this.gridName,this.config,this.params,this.options.key,modelPath,this._fetch,this.options.mapResToData)
-            });
+            if(actions instanceof Array)
+                actions.forEach(actionDef=>{
+                    this.actions[actionDef.key||actionDef.name]=MakeAction(actionDef.name,actionDef,this.gridName,this.config,this.params,this.options.key,modelPath,this._fetch,this.options.mapResToData)
+                });
+            else
+                Object.keys(actions).forEach((actionName)=> {
+                    this.actions[actionName]=MakeAction(actionName,actions[actionName],this.gridName,this.config,this.params,this.options.key,modelPath,this._fetch,this.options.mapResToData)
+                });
         }
     }
     errorHandler(err){

@@ -28,10 +28,7 @@ export declare type Options = {
     name: string;
     value: string;
 }[];
-export declare type AsyncOptions = {
-    url: string;
-    mapResToOptions?: (res: any) => Options;
-};
+export declare type AsyncOptions = () => Promise<Options>;
 export interface GridFieldSchema {
     type?: columnType;
     key: string;

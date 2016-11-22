@@ -34,14 +34,18 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     put?: (model: Model) => Promise<void>;
     delete?: (model: Model) => Promise<void>;
     count?: () => Promise<void>;
+    _fetch: typeof window.fetch;
     constructor({url, modelPath, dispatch, options, actions}: {
         url: string;
         modelPath: string[];
         dispatch: Dispatch<any>;
         options: ActionResourceOptions<Model>;
-        actions?: Actions & {
+        actions?: (Actions & {
             [actionName: string]: RestfulActionDef<Model>;
-        };
+        }) | Array<RestfulActionDef<Model> & {
+            name: string;
+            key?: string;
+        }>;
     });
     errorHandler(err: any): void;
     filter(_filter: any): void;

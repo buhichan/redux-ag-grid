@@ -37,10 +37,7 @@ export interface GridFilter{
 
 export type columnType = "select"|"checkbox"|"date"|"datetime-local"|null
 export type Options = {name:string,value:string}[]
-export type AsyncOptions = {
-    url:string,
-    mapResToOptions?:(res:any)=>Options
-};
+export type AsyncOptions = ()=>Promise<Options>
 export interface GridFieldSchema{
     type?:columnType,
     key:string,
@@ -209,18 +206,9 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 }
                 return colDef;
             };
-            if(column.options && !(column.options instanceof Array)){
-                const asyncOptions = column.options as AsyncOptions;
-                const fetch = (this.props.resource && this.props.resource['_fetch']) || window.fetch;
-                return Promise.resolve(fetch(asyncOptions.url,{
-                    method:"GET",
-                    headers:{
-                        "Content-Type":"applicatoin/json"
-                    }
-                })).then(res=>res.json()).then(res=>{
-                    return parseField(asyncOptions.mapResToOptions?asyncOptions.mapResToOptions(res):res)
-                })
-            }else
+            if (column.options && typeof column.options === 'function')
+                return column.options().then(parseField);
+            else
                 return Promise.resolve(parseField(column.options))
         }))
     }
