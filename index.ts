@@ -3,11 +3,11 @@
  */
 "use strict";
 
-export {Grid as ReduxAgGrid} from "./build/Grid"
-export {RestfulResource} from "./build/RestfulResource"
-export {GridReducer} from "./build/GridReducer"
-export {RegisterWebSocketGridEventListeners} from "./build/SocketIOReducer"
-export {GridStore} from "./build/Store"
-export {keyValueToQueryParams,deepSetState,deepGetState,setImmuOrPOJO,getImmuOrPOJO} from "./build/Utils"
+export {Grid as ReduxAgGrid} from "./src/Grid"
+export {RestfulResource} from "./src/RestfulResource"
+export {GridReducer} from "./src/GridReducer"
+export {RegisterWebSocketGridEventListeners} from "./src/SocketIOReducer"
+export {GridStore} from "./src/Store"
+export {keyValueToQueryParams,deepSetState,deepGetState,setImmuOrPOJO,getImmuOrPOJO} from "./src/Utils"
 
-export {ITheme,setTheme} from "./build/themes"
+export {ITheme,setTheme} from "./src/themes"

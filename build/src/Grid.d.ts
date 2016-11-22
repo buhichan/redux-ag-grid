@@ -50,7 +50,7 @@ export interface GridProp<T> {
     modelPath?: string[];
     schema?: GridFieldSchema[];
     actions?: (ActionInstance<T> | string)[];
-    gridOptions: GridOptions;
+    gridOptions?: GridOptions;
     dispatch?: Dispatch<any>;
     height?: number;
     serverSideFilter?: boolean;

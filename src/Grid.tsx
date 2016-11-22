@@ -8,7 +8,7 @@ import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
 import {GridOptions} from "ag-grid/src/ts/entities/gridOptions"
-import {AgGridReact as AgGrid} from "ag-grid-react"
+import {AgGridReact} from "ag-grid-react"
 import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
 import {Resource, RestfulResource} from "./RestfulResource"
 let {connect} =require("react-redux");
@@ -61,7 +61,7 @@ export interface GridProp<T>{
     modelPath?:string[]
     schema?:GridFieldSchema[],
     actions?:(ActionInstance<T>|string)[],
-    gridOptions:GridOptions,
+    gridOptions?:GridOptions,
     dispatch?:Dispatch<any>
     height?:number,
     serverSideFilter?:boolean,
@@ -260,7 +260,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
             gridApi={this.gridApi}
             height={this.props.height}
         >
-            <AgGrid {...gridOptions}/>
+            <AgGridReact {...gridOptions}/>
         </GridRenderer>;
     }
 }
