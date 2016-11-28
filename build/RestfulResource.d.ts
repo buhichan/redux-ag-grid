@@ -3,12 +3,13 @@ import { GridFilter } from "./Grid";
 import { Dispatch } from "redux";
 export declare type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null;
 export interface Resource<T> {
-    get?: (id?) => Promise<void>;
-    post?: (model: T) => Promise<void>;
-    put?: (model: T) => Promise<void>;
-    delete?: (model: T) => Promise<void>;
-    count?: () => Promise<void>;
-    filter?: (filter: GridFilter) => void;
+    get(): Promise<T[]>;
+    get(id: any): Promise<T>;
+    post(model: T): Promise<T>;
+    put(model: T): Promise<T>;
+    delete(model: T): Promise<boolean>;
+    count(): Promise<number>;
+    filter(filter: GridFilter): void;
 }
 export interface ActionResourceOptions<T> {
 }
@@ -24,9 +25,10 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     url: string;
     key: (model: Model) => string;
     dispatch: any;
-    mapResToData: (data: any, methodType?: "post" | "get" | "count" | "put" | "delete") => any;
+    mapResToData: (resData: any, methodType?: "post" | "get" | "count" | "put" | "delete", reqData?: any) => Model | (Model[]) | number | boolean;
     fetch: typeof window.fetch;
-    constructor({url, modelPath, dispatch, key, params, methods, apiType, fetch, mapResToData, actions}: {
+    cacheTime?: number;
+    constructor({url, modelPath, dispatch, key, params, methods, apiType, fetch, mapResToData, actions, cacheTime}: {
         url: string;
         modelPath: string[];
         dispatch: Dispatch<any>;
@@ -44,12 +46,23 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
             name: string;
             key?: string;
         }>;
+        cacheTime?: number;
     });
-    get(id?: any): Promise<any>;
-    count(): Promise<any>;
-    delete(data: any): Promise<any>;
-    put(data: any): Promise<any>;
-    post(data: any): Promise<any>;
+    GetOneCache: {
+        [id: string]: {
+            Model: Model;
+            LastCachedTime: number;
+        };
+    };
+    GetAllCache: Model[];
+    LastCachedTime: number;
+    get(): Promise<Model[]>;
+    get(id: any): Promise<Model>;
+    count(): Promise<number>;
+    delete(data: any): Promise<boolean>;
+    put(data: any): Promise<Model>;
+    post(data: any): Promise<Model>;
     errorHandler(err: any): void;
     filter(_filter: any): void;
+    markAsDirty(): void;
 }

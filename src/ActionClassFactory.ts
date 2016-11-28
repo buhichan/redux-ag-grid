@@ -5,18 +5,18 @@
 
 import {keyValueToQueryParams} from "./Utils"
 import Dispatch = Redux.Dispatch;
-import {GridChangePayload} from "./GridReducer";
 
 export interface RestfulActionDef<T> extends BaseActionDef<T>{
     path?:string,
     method?:string,
     params?:(data:T|T[])=>any,
     data?:(data:T|T[])=>any,
-    then?:(data:T|T[], dispatch:Dispatch<any>, modelChangeActionGenerator:(dispatch:Dispatch<any>,changes)=>any )=>any
+    then?:(data:T|T[], res:any)=>any,
+    cacheTime?: number //seconds
 }
 
 export interface ActionInstance<T> {
-    (data?:T|T[],dispatch?:Dispatch<any>):Promise<any>,
+    (data?:T|T[]):any,
     displayName?:string,
     isStatic?:boolean,
     enabled?:(data:T)=>boolean,
@@ -29,14 +29,6 @@ export interface BaseActionDef<T>{
     enabled?:(model:T)=>boolean
 }
 
-function modelChangeActionGenerator(dispatch, changes:GridChangePayload<any>){
-    let changeAction = {
-        type:"grid/model/change",
-        value:changes
-    };
-    dispatch(changeAction);
-}
-
 export function RestfulActionClassFactory<T>(url:string){
     return function Action(
         actionName:string,
@@ -47,13 +39,17 @@ export function RestfulActionClassFactory<T>(url:string){
         idGetter,
         modelPath:string[],
         fetch:typeof window.fetch,
-        mapResToData
+        mapResToData,
+        dispatch:Dispatch<any>
     ) {
-        var action:ActionInstance<T> = function(data?,dispatch?) {
+        let RequestConfig = Object.assign({
+            method:actionDef.method||"POST"
+        },config);
+        actionDef.params = actionDef.params || (()=>({}));
+        let ActionCacheMap = {};
+
+        const action:ActionInstance<T> = function(data?) {
             let action_url = url;
-            let RequestConfig = Object.assign({
-                method:actionDef.method||"POST"
-            },config);
             if(actionDef.path)
                 action_url += actionDef.path.replace(":id",idGetter(data));
             else if(actionDef.isStatic)
@@ -62,23 +58,43 @@ export function RestfulActionClassFactory<T>(url:string){
                 action_url += idGetter(data)+"/"+actionName;
             if(actionDef.data && data)
                 RequestConfig.body = JSON.stringify(actionDef.data(data));
-            actionDef.params = actionDef.params || (()=>({}));
             let RequestParams = Object.assign({},params,actionDef.params(data));
             action_url += keyValueToQueryParams(RequestParams);
-            let promise =  fetch(action_url,RequestConfig).then(res=>res.json()).then(res=>mapResToData(res,actionName));
+            let promise;
+            if(actionDef.cacheTime) {
+                const cached = ActionCacheMap[action_url];
+                if(cached) {
+                    const {LastCachedTime, cachedValue} = cached;
+                    if (Date.now() - LastCachedTime < actionDef.cacheTime * 1000)
+                        promise = Promise.resolve(cachedValue);
+                }
+            }
+            if(!promise)
+                promise = fetch(action_url,RequestConfig).then(res=>res.json()).then(res=>{
+                    const data = mapResToData(res,actionName);
+                    if(actionDef.cacheTime)
+                        ActionCacheMap[action_url] = {
+                            cachedValue:data,
+                            LastCachedTime:Date.now()
+                        };
+                    return data;
+                });
             if(actionDef.then)
                 return promise.then(res=>{
-                    let actionResult = actionDef.then(res as any,dispatch,modelChangeActionGenerator);
+                    const actionResult = actionDef.then(data,res);
                     if(actionResult!==undefined) // then it should be regarded as a model change
-                        modelChangeActionGenerator(dispatch,
-                            {
+                        dispatch({
+                            type:"grid/model/change",
+                            value:{
                                 modelPath,
                                 key:idGetter,
                                 data:{
                                     id:idGetter(data),
                                     changes:actionResult
                                 }
-                            })
+                            }
+                        });
+                    return res;
                 });
             else return promise;
         };

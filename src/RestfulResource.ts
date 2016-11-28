@@ -35,12 +35,13 @@ declare namespace Loopback{
 export type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null
 
 export interface Resource<T>{
-    get?:(id?)=>Promise<void>,
-    post?:(model:T)=>Promise<void>,
-    put?:(model:T)=>Promise<void>,
-    delete?:(model:T)=>Promise<void>
-    count?:()=>Promise<void>
-    filter?:(filter:GridFilter)=>void
+    get():Promise<T[]>,
+    get(id):Promise<T>,
+    post(model:T):Promise<T>,
+    put(model:T):Promise<T>,
+    delete(model:T):Promise<boolean>
+    count():Promise<number>
+    filter(filter:GridFilter):void
 }
 
 export interface ActionResourceOptions<T>{
@@ -56,8 +57,9 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     url:string;
     key:(model:Model)=>string;
     dispatch;
-    mapResToData:(data:any,methodType?:"post"|"get"|"count"|"put"|"delete")=>any;
+    mapResToData:(resData:any,methodType?:"post"|"get"|"count"|"put"|"delete",reqData?:any)=>Model|(Model[])|number|boolean;
     fetch:typeof window.fetch;
+    cacheTime?:number;
     constructor({
         url,
         modelPath,
@@ -69,6 +71,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         fetch,
         mapResToData,
         actions,
+        cacheTime,
     }:{
         url:string,
         modelPath:string[],
@@ -80,6 +83,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         fetch?:typeof window.fetch,
         mapResToData?
         actions?:(Actions & {[actionName:string]:RestfulActionDef<Model>})|Array<RestfulActionDef<Model>&{name:string,key?:string}>,
+        cacheTime?:number
     }) {
         if (url.substr(-1) !== '/') url += '/';
         this.key = key || (x=>x['id']);
@@ -88,7 +92,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         this.modelPath = modelPath;
         this.dispatch = dispatch;
         this.url = url;
-        
+        this.cacheTime=cacheTime;
         switch (apiType) {
             case "NodeRestful": {
                 this.params = params || function (filter) {
@@ -136,7 +140,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                         if (this.params && this.params['filter'])
                             this.params['where'] = this.params['filter'].where;
                         return fetch(url + '/count' + keyValueToQueryParams(params(this.params)), this.config)
-                            .then(res=>res.json()).then(mapResToData).then((res)=> {
+                            .then(res=>res.json()).then(res=>mapResToData(res,'count')).then((res)=> {
                                 dispatch({
                                     type: "grid/model/count",
                                     value: {
@@ -144,7 +148,8 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                                         gridName: this.gridName,
                                         count: res
                                     }
-                                })
+                                });
+                                return res;
                             });
                     });
                 break;
@@ -170,11 +175,13 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             this.actions = {} as any;
             if(actions instanceof Array)
                 actions.forEach(actionDef=>{
-                    this.actions[actionDef.key||actionDef.name]=MakeAction(actionDef.name,actionDef,this.gridName,this.config,this.params,this.key,modelPath,fetch,this.mapResToData)
+                    this.actions[actionDef.key||actionDef.name]=
+                        MakeAction(actionDef.name,actionDef,this.gridName,this.config,this.params,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
                 });
             else
                 Object.keys(actions).forEach((actionName)=> {
-                    this.actions[actionName]=MakeAction(actionName,actions[actionName],this.gridName,this.config,this.params,this.key,modelPath,fetch,this.mapResToData)
+                    this.actions[actionName]=
+                        MakeAction(actionName,actions[actionName],this.gridName,this.config,this.params,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
                 });
         }
         if(methods)
@@ -183,53 +190,80 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                     this[method] = methods[method].bind(this)
             })
     }
+    GetAllCache:Model[];
+    LastCachedTime:number;
         //TODO catch exception
-    get(id?){
+    get():Promise<Model[]>
+    get(id):Promise<Model>
+    get(id?):Promise<Model[]|Model>{
+        if(this.cacheTime){
+            if(!id && Date.now()-this.LastCachedTime<this.cacheTime*1000){
+                return Promise.resolve(this.GetAllCache);
+            }
+        }
         return this.fetch(this.url+(id!==undefined?id:"")+keyValueToQueryParams(this.params),this.config)
             .then(res=>res.json()).then((res)=>{
-            this.dispatch({
-                type:"grid/model/get",
-                value:{
-                    modelPath:this.modelPath,
-                    key:this.key,
-                    models:this.mapResToData(res,'get')
+                const models = this.mapResToData(res,'get',id) as any;
+                if(!id) {
+                    this.dispatch({
+                        type: "grid/model/get",
+                        value: {
+                            modelPath: this.modelPath,
+                            key: this.key,
+                            models
+                        }
+                    });
+                    this.GetAllCache = models as Model[];
+                    this.LastCachedTime = Date.now();
+                }else{
+                    this.dispatch({
+                        type: "grid/model/put",
+                        value:{
+                            modelPath:this.modelPath,
+                            key:this.key,
+                            model:models
+                        }
+                    });
                 }
-            });
-            return res;
-        },this.errorHandler.bind(this))
+                return models;
+        },this.errorHandler.bind(this));
     }
-    count(){
+    count():Promise<number>{
         return this.fetch(this.url + 'count'+keyValueToQueryParams(this.params),this.config)
             .then(res=>res.json()).then((res)=>{
-            this.dispatch({
-                type:"grid/model/count",
-                value:{
-                    modelPath:this.modelPath,
-                    gridName:this.gridName,
-                    key:this.key,
-                    count:this.mapResToData(res,'count')
-                }
-            });
-            return res;
+                const count = this.mapResToData(res,'count');
+                this.dispatch({
+                    type:"grid/model/count",
+                    value:{
+                        modelPath:this.modelPath,
+                        gridName:this.gridName,
+                        key:this.key,
+                        count
+                    }
+                });
+            return count;
         },this.errorHandler.bind(this))
     }
-    delete(data){
+    delete(data):Promise<boolean>{
         return this.fetch(this.url + this.key(data), Object.assign({},this.config,{
             method:"DELETE"
         })).then(res=>res.json()).then((res)=>{
-            if(this.mapResToData(res,'delete'))
+            if(this.mapResToData(res,'delete',data)) {
                 this.dispatch({
-                    type:"grid/model/delete",
-                    value:{
-                        modelPath:this.modelPath,
-                        key:this.key,
-                        model:data
+                    type: "grid/model/delete",
+                    value: {
+                        modelPath: this.modelPath,
+                        key: this.key,
+                        model: data
                     }
                 });
-            return res;
+                this.markAsDirty();
+                return true;
+            }
+            return false;
         },this.errorHandler.bind(this))
     }
-    put(data){
+    put(data):Promise<Model>{
         if(!this.key(data))
             return this['post'](data);
         else
@@ -237,31 +271,35 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 method:"PUT",
                 body:JSON.stringify(data)
             })).then(res=>res.json()).then((res)=>{
+                const model = this.mapResToData(res,'put',data);
                 this.dispatch({
                     type:"grid/model/put",
                     value:{
                         modelPath:this.modelPath,
                         key:this.key,
-                        model:this.mapResToData(res,'put')
+                        model
                     }
                 });
-                return res;
+                this.markAsDirty();
+                return model;
             },this.errorHandler.bind(this))
     }
-    post(data){
+    post(data):Promise<Model>{
         return this.fetch(this.url, Object.assign({},this.config,{
             method:"POST",
             body:JSON.stringify(data)
         })).then(res=>res.json()).then((res)=>{
+            const model = this.mapResToData(res,'post',data);
             this.dispatch({
                 type:"grid/model/post",
                 value:{
                     modelPath:this.modelPath,
                     key:this.key,
-                    model:this.mapResToData(res,'post')
+                    model
                 }
             });
-            return res;
+            this.markAsDirty();
+            return model;
         },this.errorHandler.bind(this))
     }
     errorHandler(err){
@@ -269,5 +307,8 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     }
     filter(_filter){
         this.params = this.params?this.params(_filter):_filter;
+    }
+    markAsDirty(){
+        this.LastCachedTime = -Infinity;
     }
 }

@@ -53,11 +53,17 @@ var Grid = (function (_super) {
                 rowData: [],
                 paginationPageSize: 20,
                 rowHeight: 40,
-                onGridReady: function (params) { _this.gridApi = params.api; _this.columnApi = params.columnApi; },
+                onGridReady: function (params) {
+                    _this.gridApi = params.api;
+                    _this.columnApi = params.columnApi;
+                    if (_this.props.gridApi)
+                        _this.props.gridApi(_this.gridApi);
+                },
                 onColumnEverythingChanged: function () { return _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
                 rowSelection: "multiple",
                 enableSorting: "true",
                 enableFilter: "true",
+                enableColResize: true
             },
             themeRenderer: themes_1.currentTheme(),
             selectAll: false,
@@ -82,17 +88,25 @@ var Grid = (function (_super) {
     };
     Grid.prototype.componentWillUnmount = function () {
         this.isUnmounting = true;
+        if (this.props.gridApi)
+            this.props.gridApi(null);
     };
     Grid.prototype.onReady = function (schema) {
         var _this = this;
         var _a = this.getActions(), staticActions = _a.staticActions, rowActions = _a.rowActions;
-        var columnDefs = schema && schema.length ? schema.concat([{
-                headerName: "",
-                suppressFilter: true,
-                suppressMenu: true,
-                suppressSorting: true,
-                cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
-            }]) : [];
+        var columnDefs;
+        if (!schema || !schema.length)
+            columnDefs = [];
+        else if (rowActions.length)
+            columnDefs = schema.concat([{
+                    headerName: "",
+                    suppressFilter: true,
+                    suppressMenu: true,
+                    suppressSorting: true,
+                    cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
+                }]);
+        else
+            columnDefs = schema;
         var gridOptions = Object.assign(this.state.gridOptions, {
             quickFilterText: this.state.quickFilterText,
             columnDefs: columnDefs,
@@ -155,7 +169,9 @@ var Grid = (function (_super) {
             var parseField = function (options) {
                 var colDef = {
                     field: column.key,
-                    headerName: column.label
+                    headerName: column.label,
+                    cellRenderer: column.cellRenderer,
+                    cellRendererParams: column.cellRendererParams
                 };
                 switch (column.type) {
                     case "select":
@@ -206,10 +222,16 @@ var Grid = (function (_super) {
                     else
                         rowActions.push(restResource.actions[action]);
                 }
-                else if (action.isStatic)
-                    staticActions.push(action);
-                else
-                    rowActions.push(action);
+                else {
+                    var actionInst = action;
+                    actionInst.call['isStatic'] = actionInst.isStatic;
+                    actionInst.call['enabled'] = actionInst.enabled;
+                    actionInst.call['displayName'] = actionInst.displayName;
+                    if (actionInst.isStatic)
+                        staticActions.push(actionInst.call);
+                    else
+                        rowActions.push(actionInst.call);
+                }
             });
         return {
             staticActions: staticActions,

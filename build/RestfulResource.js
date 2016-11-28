@@ -7,8 +7,9 @@ var Utils_1 = require("./Utils");
 var RestfulResource = (function () {
     function RestfulResource(_a) {
         var _this = this;
-        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, params = _a.params, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions;
+        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, params = _a.params, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, cacheTime = _a.cacheTime;
         this.config = {};
+        this.GetOneCache = {};
         if (url.substr(-1) !== '/')
             url += '/';
         this.key = key || (function (x) { return x['id']; });
@@ -17,6 +18,7 @@ var RestfulResource = (function () {
         this.modelPath = modelPath;
         this.dispatch = dispatch;
         this.url = url;
+        this.cacheTime = cacheTime;
         switch (apiType) {
             case "NodeRestful": {
                 this.params = params || function (filter) {
@@ -64,7 +66,7 @@ var RestfulResource = (function () {
                     if (_this.params && _this.params['filter'])
                         _this.params['where'] = _this.params['filter'].where;
                     return fetch(url + '/count' + Utils_1.keyValueToQueryParams(params(_this.params)), _this.config)
-                        .then(function (res) { return res.json(); }).then(mapResToData).then(function (res) {
+                        .then(function (res) { return res.json(); }).then(function (res) { return mapResToData(res, 'count'); }).then(function (res) {
                         dispatch({
                             type: "grid/model/count",
                             value: {
@@ -73,6 +75,7 @@ var RestfulResource = (function () {
                                 count: res
                             }
                         });
+                        return res;
                     });
                 });
                 break;
@@ -96,11 +99,13 @@ var RestfulResource = (function () {
             this.actions = {};
             if (actions instanceof Array)
                 actions.forEach(function (actionDef) {
-                    _this.actions[actionDef.key || actionDef.name] = MakeAction_1(actionDef.name, actionDef, _this.gridName, _this.config, _this.params, _this.key, modelPath, fetch, _this.mapResToData);
+                    _this.actions[actionDef.key || actionDef.name] =
+                        MakeAction_1(actionDef.name, actionDef, _this.gridName, _this.config, _this.params, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
                 });
             else
                 Object.keys(actions).forEach(function (actionName) {
-                    _this.actions[actionName] = MakeAction_1(actionName, actions[actionName], _this.gridName, _this.config, _this.params, _this.key, modelPath, fetch, _this.mapResToData);
+                    _this.actions[actionName] =
+                        MakeAction_1(actionName, actions[actionName], _this.gridName, _this.config, _this.params, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
                 });
         }
         if (methods)
@@ -109,36 +114,66 @@ var RestfulResource = (function () {
                     _this[method] = methods[method].bind(_this);
             });
     }
-    //TODO catch exception
     RestfulResource.prototype.get = function (id) {
         var _this = this;
+        if (this.cacheTime) {
+            if (!id && Date.now() - this.LastCachedTime < this.cacheTime * 1000) {
+                return Promise.resolve(this.GetAllCache);
+            }
+            if (id) {
+                var entry = this.GetOneCache[id];
+                if (entry && Date.now() - entry.LastCachedTime < this.cacheTime * 1000) {
+                    return Promise.resolve(entry.Model);
+                }
+            }
+        }
         return this.fetch(this.url + (id !== undefined ? id : "") + Utils_1.keyValueToQueryParams(this.params), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
-            _this.dispatch({
-                type: "grid/model/get",
-                value: {
-                    modelPath: _this.modelPath,
-                    key: _this.key,
-                    models: _this.mapResToData(res, 'get')
-                }
-            });
-            return res;
+            var models = _this.mapResToData(res, 'get', id);
+            if (!id) {
+                _this.dispatch({
+                    type: "grid/model/get",
+                    value: {
+                        modelPath: _this.modelPath,
+                        key: _this.key,
+                        models: models
+                    }
+                });
+                _this.GetAllCache = models;
+                _this.LastCachedTime = Date.now();
+            }
+            else {
+                _this.dispatch({
+                    type: "grid/model/put",
+                    value: {
+                        modelPath: _this.modelPath,
+                        key: _this.key,
+                        model: models
+                    }
+                });
+                _this.GetOneCache[id] = {
+                    Model: models,
+                    LastCachedTime: Date.now()
+                };
+            }
+            return models;
         }, this.errorHandler.bind(this));
     };
     RestfulResource.prototype.count = function () {
         var _this = this;
         return this.fetch(this.url + 'count' + Utils_1.keyValueToQueryParams(this.params), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
+            var count = _this.mapResToData(res, 'count');
             _this.dispatch({
                 type: "grid/model/count",
                 value: {
                     modelPath: _this.modelPath,
                     gridName: _this.gridName,
                     key: _this.key,
-                    count: _this.mapResToData(res, 'count')
+                    count: count
                 }
             });
-            return res;
+            return count;
         }, this.errorHandler.bind(this));
     };
     RestfulResource.prototype.delete = function (data) {
@@ -146,7 +181,7 @@ var RestfulResource = (function () {
         return this.fetch(this.url + this.key(data), Object.assign({}, this.config, {
             method: "DELETE"
         })).then(function (res) { return res.json(); }).then(function (res) {
-            if (_this.mapResToData(res, 'delete'))
+            if (_this.mapResToData(res, 'delete', data)) {
                 _this.dispatch({
                     type: "grid/model/delete",
                     value: {
@@ -155,7 +190,10 @@ var RestfulResource = (function () {
                         model: data
                     }
                 });
-            return res;
+                _this.markAsDirty();
+                return true;
+            }
+            return false;
         }, this.errorHandler.bind(this));
     };
     RestfulResource.prototype.put = function (data) {
@@ -167,15 +205,17 @@ var RestfulResource = (function () {
                 method: "PUT",
                 body: JSON.stringify(data)
             })).then(function (res) { return res.json(); }).then(function (res) {
+                var model = _this.mapResToData(res, 'put', data);
                 _this.dispatch({
                     type: "grid/model/put",
                     value: {
                         modelPath: _this.modelPath,
                         key: _this.key,
-                        model: _this.mapResToData(res, 'put')
+                        model: model
                     }
                 });
-                return res;
+                _this.markAsDirty();
+                return model;
             }, this.errorHandler.bind(this));
     };
     RestfulResource.prototype.post = function (data) {
@@ -184,15 +224,17 @@ var RestfulResource = (function () {
             method: "POST",
             body: JSON.stringify(data)
         })).then(function (res) { return res.json(); }).then(function (res) {
+            var model = _this.mapResToData(res, 'post', data);
             _this.dispatch({
                 type: "grid/model/post",
                 value: {
                     modelPath: _this.modelPath,
                     key: _this.key,
-                    model: _this.mapResToData(res, 'post')
+                    model: model
                 }
             });
-            return res;
+            _this.markAsDirty();
+            return model;
         }, this.errorHandler.bind(this));
     };
     RestfulResource.prototype.errorHandler = function (err) {
@@ -200,6 +242,9 @@ var RestfulResource = (function () {
     };
     RestfulResource.prototype.filter = function (_filter) {
         this.params = this.params ? this.params(_filter) : _filter;
+    };
+    RestfulResource.prototype.markAsDirty = function () {
+        this.LastCachedTime = -Infinity;
     };
     return RestfulResource;
 }());

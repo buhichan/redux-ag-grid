@@ -12,7 +12,7 @@ import {Resource, RestfulResource} from "./RestfulResource"
 let {connect} =require("react-redux");
 import {deepGetState} from "./Utils";
 import {EnumFilter, DateFilter} from "./GridFilters";
-import {ActionInstance} from "./ActionClassFactory";
+import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import Dispatch = Redux.Dispatch;
 import {currentTheme, ITheme} from "./themes"
 import "./themes/Bootstrap"
@@ -41,7 +41,9 @@ export interface GridFieldSchema{
     type?:columnType,
     key:string,
     label:string,
-    options?:Options | AsyncOptions
+    options?:Options | AsyncOptions,
+    cellRenderer:any,
+    cellRendererParams:any
 }
 
 export interface GridState{
@@ -52,18 +54,23 @@ export interface GridState{
     staticActions:ActionInstance<any>[]
 }
 
+export type ActionInstanceAlt<T> = BaseActionDef<T>&{
+    call:(data:T|T[])=>any
+};
+
 export interface GridProp<T>{
     gridName?:string,
+    gridApi?:(gridApi:GridApi)=>void,
     store?:Immutable.Map<any,any>,
     resource?:Resource<T>,
     modelPath?:string[]
     schema?:GridFieldSchema[],
-    actions?:(ActionInstance<T>|string)[],
+    actions?:(ActionInstanceAlt<T>|string)[],
     gridOptions?:any,
     dispatch?:Dispatch<any>
     height?:number,
     serverSideFilter?:boolean,
-    data?:T[]
+    data?:T[] | Immutable.List<T>
 }
 
 function getModel(store,modelPath){
@@ -89,11 +96,17 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                 rowData:[],
                 paginationPageSize:20,
                 rowHeight:40,
-                onGridReady:params=>{this.gridApi=params.api;this.columnApi=params.columnApi},
+                onGridReady:params=>{
+                    this.gridApi=params.api;
+                    this.columnApi=params.columnApi;
+                    if(this.props.gridApi)
+                        this.props.gridApi(this.gridApi);
+                },
                 onColumnEverythingChanged:()=>this.gridApi&&this.gridApi.sizeColumnsToFit(),
                 rowSelection:"multiple",
                 enableSorting:"true",
                 enableFilter:"true",
+                enableColResize: true
             },
             themeRenderer:currentTheme(),
             selectAll:false,
@@ -116,16 +129,24 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     }
     componentWillUnmount(){
         this.isUnmounting = true;
+        if(this.props.gridApi)
+            this.props.gridApi(null);
     }
     onReady(schema){
         let {staticActions,rowActions} = this.getActions();
-        let columnDefs = schema && schema.length?schema.concat([{
-            headerName:"",
-            suppressFilter:true,
-            suppressMenu:true,
-            suppressSorting:true,
-            cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
-        }]):[];
+        let columnDefs;
+        if(!schema||!schema.length)
+            columnDefs = [];
+        else if(rowActions.length)
+            columnDefs = schema.concat([{
+                headerName:"",
+                suppressFilter:true,
+                suppressMenu:true,
+                suppressSorting:true,
+                cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
+            }]);
+        else
+            columnDefs = schema;
         const gridOptions = Object.assign(this.state.gridOptions,{
             quickFilterText:this.state.quickFilterText,
             columnDefs:columnDefs,
@@ -184,7 +205,9 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
             let parseField:(options:any)=>AbstractColDef = (options)=>{
                 let colDef={
                     field:column.key,
-                    headerName:column.label
+                    headerName:column.label,
+                    cellRenderer:column.cellRenderer,
+                    cellRendererParams:column.cellRendererParams
                 };
                 switch (column.type){
                     case "select":
@@ -231,10 +254,16 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                         staticActions.push(restResource.actions[action]);
                     else
                         rowActions.push(restResource.actions[action]);
-                } else if((action as ActionInstance<any>).isStatic)
-                    staticActions.push((action as ActionInstance<any>));
-                else
-                    rowActions.push((action as ActionInstance<any>));
+                } else{
+                    const actionInst = action as ActionInstanceAlt<T>;
+                    actionInst.call['isStatic'] = actionInst.isStatic;
+                    actionInst.call['enabled'] = actionInst.enabled;
+                    actionInst.call['displayName'] = actionInst.displayName;
+                    if(actionInst.isStatic)
+                        staticActions.push(actionInst.call as any);
+                    else
+                        rowActions.push(actionInst.call as any);
+                }
             });
         return {
             staticActions,

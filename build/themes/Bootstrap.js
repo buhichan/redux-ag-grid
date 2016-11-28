@@ -34,7 +34,7 @@ var Theme = {
                     React.createElement("button", {className: "btn btn-default", onClick: props.onSelectAll}, "全选/取消")
                 ), 
                 React.createElement("div", {className: "btn-group btn-group-sm pull-right"}, props.actions.map(function (action, i) {
-                    return React.createElement("button", {key: i, className: "btn btn-default", onClick: function () { return action(props.gridApi.getSelectedRows(), props.dispatch); }}, action.displayName);
+                    return React.createElement("button", {key: i, className: "btn btn-default", onClick: function () { return action(props.gridApi.getSelectedRows()); }}, action.displayName);
                 }))), 
             React.createElement("div", {className: "panel-body", style: { height: (props.height || 600) + "px" }}, props.children));
     },
@@ -48,7 +48,7 @@ var Theme = {
             return React.createElement("div", {className: "btn-actions"}, actions.filter(function (action) { return !action.enabled || action.enabled(_this.props.data); }).map(function (action, i) {
                 return React.createElement("button", {key: i, className: "btn btn-sm btn-primary", ref: function (ref) {
                     ref && ref.addEventListener('click', function (e) {
-                        action(action.useSelected ? _this.props.context.getSelected() : _this.props.data, _this.props.context.dispatch);
+                        action(action.useSelected ? _this.props.context.getSelected() : _this.props.data);
                         e.stopPropagation();
                     });
                 }}, action.displayName);

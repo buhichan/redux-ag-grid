@@ -2,7 +2,7 @@ import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
 import { AbstractColDef, GridApi, ColumnApi } from "ag-grid";
 import { Resource } from "./RestfulResource";
-import { ActionInstance } from "./ActionClassFactory";
+import { ActionInstance, BaseActionDef } from "./ActionClassFactory";
 import Dispatch = Redux.Dispatch;
 import { ITheme } from "./themes";
 import "./themes/Bootstrap";
@@ -33,6 +33,8 @@ export interface GridFieldSchema {
     key: string;
     label: string;
     options?: Options | AsyncOptions;
+    cellRenderer: any;
+    cellRendererParams: any;
 }
 export interface GridState {
     quickFilterText?: string;
@@ -41,18 +43,22 @@ export interface GridState {
     selectAll?: boolean;
     staticActions: ActionInstance<any>[];
 }
+export declare type ActionInstanceAlt<T> = BaseActionDef<T> & {
+    call: (data: T | T[]) => any;
+};
 export interface GridProp<T> {
     gridName?: string;
+    gridApi?: (gridApi: GridApi) => void;
     store?: Immutable.Map<any, any>;
     resource?: Resource<T>;
     modelPath?: string[];
     schema?: GridFieldSchema[];
-    actions?: (ActionInstance<T> | string)[];
+    actions?: (ActionInstanceAlt<T> | string)[];
     gridOptions?: any;
     dispatch?: Dispatch<any>;
     height?: number;
     serverSideFilter?: boolean;
-    data?: T[];
+    data?: T[] | Immutable.List<T>;
 }
 export declare class Grid<T> extends Component<GridProp<T>, GridState> {
     gridApi: GridApi;

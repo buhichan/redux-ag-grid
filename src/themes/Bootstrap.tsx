@@ -4,6 +4,7 @@
 import * as React from "react"
 import "ag-grid/dist/styles/theme-bootstrap.css"
 import {ITheme, setTheme} from "./index";
+import {ActionInstance} from "../ActionClassFactory";
 
 const Theme:ITheme = {
     SelectFieldRenderer:(options)=>{
@@ -34,7 +35,7 @@ const Theme:ITheme = {
                     {
                         props.actions.map((action, i)=>
                             <button key={i} className="btn btn-default"
-                                    onClick={()=>action(props.gridApi.getSelectedRows(),props.dispatch)}>{action.displayName}</button>)
+                                    onClick={()=>action(props.gridApi.getSelectedRows())}>{action.displayName}</button>)
                     }
                 </div>
             </div>
@@ -51,7 +52,7 @@ const Theme:ITheme = {
                         <button key={i} className="btn btn-sm btn-primary"
                                 ref={(ref)=>{
                             ref&&ref.addEventListener('click',(e)=>{
-                                action(action.useSelected?this.props.context.getSelected():this.props.data,this.props.context.dispatch);
+                                action(action.useSelected?this.props.context.getSelected():this.props.data);
                                 e.stopPropagation();
                             })
                         }}>{action.displayName}</button>)
