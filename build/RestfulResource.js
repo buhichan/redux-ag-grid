@@ -9,7 +9,6 @@ var RestfulResource = (function () {
         var _this = this;
         var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, params = _a.params, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, cacheTime = _a.cacheTime;
         this.config = {};
-        this.GetOneCache = {};
         if (url.substr(-1) !== '/')
             url += '/';
         this.key = key || (function (x) { return x['id']; });
@@ -120,12 +119,6 @@ var RestfulResource = (function () {
             if (!id && Date.now() - this.LastCachedTime < this.cacheTime * 1000) {
                 return Promise.resolve(this.GetAllCache);
             }
-            if (id) {
-                var entry = this.GetOneCache[id];
-                if (entry && Date.now() - entry.LastCachedTime < this.cacheTime * 1000) {
-                    return Promise.resolve(entry.Model);
-                }
-            }
         }
         return this.fetch(this.url + (id !== undefined ? id : "") + Utils_1.keyValueToQueryParams(this.params), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
@@ -151,10 +144,6 @@ var RestfulResource = (function () {
                         model: models
                     }
                 });
-                _this.GetOneCache[id] = {
-                    Model: models,
-                    LastCachedTime: Date.now()
-                };
             }
             return models;
         }, this.errorHandler.bind(this));

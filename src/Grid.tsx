@@ -34,7 +34,7 @@ export interface GridFilter{
     }
 }
 
-export type columnType = "select"|"checkbox"|"date"|"datetime-local"|null
+export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|null
 export type Options = {name:string,value:string}[]
 export type AsyncOptions = ()=>Promise<Options>
 export interface GridFieldSchema{
@@ -42,8 +42,8 @@ export interface GridFieldSchema{
     key:string,
     label:string,
     options?:Options | AsyncOptions,
-    cellRenderer:any,
-    cellRendererParams:any
+    cellRenderer?:any,
+    cellRendererParams?:any
 }
 
 export interface GridState{

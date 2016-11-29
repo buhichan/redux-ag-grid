@@ -51,7 +51,11 @@ export function RestfulActionClassFactory<T>(url:string){
         const action:ActionInstance<T> = function(data?) {
             let action_url = url;
             if(actionDef.path)
-                action_url += actionDef.path.replace(":id",idGetter(data));
+                action_url += actionDef.path.replace(/(:\w+)(?=\/|$)/g,function(match){
+                    if(match==='/id') return "/"+idGetter(data);
+                    else return data[match.slice(1)] || ""
+                })
+                ;
             else if(actionDef.isStatic)
                 action_url += actionName;
             else

@@ -58,7 +58,7 @@ interface NodeModule {
     children: any[];
 }
 
-declare var module: NodeModule;
+declare var module: NodeModule | any;
 
 // Same as module.exports
 declare var exports: any;

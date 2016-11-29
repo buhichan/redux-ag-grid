@@ -82,7 +82,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         apiType?:APIType,
         fetch?:typeof window.fetch,
         mapResToData?
-        actions?:(Actions & {[actionName:string]:RestfulActionDef<Model>})|Array<RestfulActionDef<Model>&{name:string,key?:string}>,
+        actions?:(Actions & {[actionName:string]:RestfulActionDef<Model>})|Array<RestfulActionDef<Model>&{name?:string,key?:string}>,
         cacheTime?:number
     }) {
         if (url.substr(-1) !== '/') url += '/';

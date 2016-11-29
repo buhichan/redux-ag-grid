@@ -22,7 +22,7 @@ export interface GridFilter {
         reverse: boolean;
     };
 }
-export declare type columnType = "select" | "checkbox" | "date" | "datetime-local" | null;
+export declare type columnType = "text" | "number" | "select" | "checkbox" | "date" | "datetime-local" | null;
 export declare type Options = {
     name: string;
     value: string;
@@ -33,8 +33,8 @@ export interface GridFieldSchema {
     key: string;
     label: string;
     options?: Options | AsyncOptions;
-    cellRenderer: any;
-    cellRendererParams: any;
+    cellRenderer?: any;
+    cellRendererParams?: any;
 }
 export interface GridState {
     quickFilterText?: string;

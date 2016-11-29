@@ -43,17 +43,11 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         actions?: (Actions & {
             [actionName: string]: RestfulActionDef<Model>;
         }) | Array<RestfulActionDef<Model> & {
-            name: string;
+            name?: string;
             key?: string;
         }>;
         cacheTime?: number;
     });
-    GetOneCache: {
-        [id: string]: {
-            Model: Model;
-            LastCachedTime: number;
-        };
-    };
     GetAllCache: Model[];
     LastCachedTime: number;
     get(): Promise<Model[]>;
