@@ -41,14 +41,14 @@ export interface Resource<T>{
     put(model:T):Promise<T>,
     delete(model:T):Promise<boolean>
     count():Promise<number>
-    filter(filter:GridFilter):void
+    query(query:{[key:string]:string}):void
 }
 
 export interface ActionResourceOptions<T>{
 }
 
 export class RestfulResource<Model,Actions> implements Resource<Model>{
-    params:(...args:any[])=>any;
+    mapFilterToQuery:(filter:GridFilter)=>{[key:string]:string};
     options:ActionResourceOptions<Model>;
     config: RequestInit= {};
     actions: Actions & {[actionName:string]:ActionInstance<Model>};
@@ -60,12 +60,13 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     mapResToData:(resData:any,methodType?:"post"|"get"|"count"|"put"|"delete",reqData?:any)=>Model|(Model[])|number|boolean;
     fetch:typeof window.fetch;
     cacheTime?:number;
+    _query:{[key:string]:string}={};
     constructor({
         url,
         modelPath,
         dispatch,
         key,
-        params,
+        mapFilterToQuery,
         methods,
         apiType,
         fetch,
@@ -77,7 +78,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         modelPath:string[],
         dispatch:Dispatch<any>,
         key?,
-        params?:(filter:GridFilter)=>({[id:string]:any}),
+        mapFilterToQuery?:(filter:GridFilter)=>({[id:string]:any}),
         methods?:Resource<Model>,
         apiType?:APIType,
         fetch?:typeof window.fetch,
@@ -85,7 +86,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         actions?:(Actions & {[actionName:string]:RestfulActionDef<Model>})|Array<RestfulActionDef<Model>&{name?:string,key?:string}>,
         cacheTime?:number
     }) {
-        if (url.substr(-1) !== '/') url += '/';
+        if (url.substr(-1) === '/') url=url.slice(0,-1);
         this.key = key || (x=>x['id']);
         this.mapResToData = mapResToData || (x=>x);
         this.fetch = fetch || window.fetch;
@@ -95,7 +96,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         this.cacheTime=cacheTime;
         switch (apiType) {
             case "NodeRestful": {
-                this.params = params || function (filter) {
+                this.mapFilterToQuery = mapFilterToQuery || function (filter) {
                         let _filter: NodeRestful.Params = {};
                         filter.search.forEach(function (condition) {
                             let key = condition.field.replace(/\[[^\]]*\]/, '');
@@ -118,7 +119,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 break;
             }
             case "Loopback": {
-                this.params = params || function (filter) {
+                this.mapFilterToQuery = mapFilterToQuery || function (filter) {
                         let _filter: Loopback.Params = {where: {}};
                         filter.search.forEach(function (condition) {
                             if (/^\/.*\/$/.test(condition.value))
@@ -137,9 +138,9 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                         return {filter: _filter};
                     };
                 this.count = methods.count || (()=> {
-                        if (this.params && this.params['filter'])
-                            this.params['where'] = this.params['filter'].where;
-                        return fetch(url + '/count' + keyValueToQueryParams(params(this.params)), this.config)
+                        if (this._query && this._query['filter'])
+                            this._query['where'] = this._query['filter']['where'];
+                        return fetch(url + '/count' + keyValueToQueryParams(this._query), this.config)
                             .then(res=>res.json()).then(res=>mapResToData(res,'count')).then((res)=> {
                                 dispatch({
                                     type: "grid/model/count",
@@ -155,7 +156,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 break;
             }
             case "Swagger": {
-                this.params = params || ((filter)=> {
+                this.mapFilterToQuery = mapFilterToQuery || ((filter)=> {
                         let params = {};
                         if (filter.pagination) {
                             params['page'] = (filter.pagination.offset / filter.pagination.limit + 1);
@@ -176,12 +177,12 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             if(actions instanceof Array)
                 actions.forEach(actionDef=>{
                     this.actions[actionDef.key||actionDef.name]=
-                        MakeAction(actionDef.name,actionDef,this.gridName,this.config,this.params,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
+                        MakeAction(actionDef.name,actionDef,this.gridName,this.config,this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
                 });
             else
                 Object.keys(actions).forEach((actionName)=> {
                     this.actions[actionName]=
-                        MakeAction(actionName,actions[actionName],this.gridName,this.config,this.params,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
+                        MakeAction(actionName,actions[actionName],this.gridName,this.config,this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
                 });
         }
         if(methods)
@@ -201,7 +202,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 return Promise.resolve(this.GetAllCache);
             }
         }
-        return this.fetch(this.url+(id!==undefined?id:"")+keyValueToQueryParams(this.params),this.config)
+        return this.fetch(this.url+(id!==undefined?("/"+id):"")+keyValueToQueryParams(this._query),this.config)
             .then(res=>res.json()).then((res)=>{
                 const models = this.mapResToData(res,'get',id) as any;
                 if(!id) {
@@ -229,7 +230,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         },this.errorHandler.bind(this));
     }
     count():Promise<number>{
-        return this.fetch(this.url + 'count'+keyValueToQueryParams(this.params),this.config)
+        return this.fetch(this.url+'/' + 'count'+keyValueToQueryParams(this._query),this.config)
             .then(res=>res.json()).then((res)=>{
                 const count = this.mapResToData(res,'count');
                 this.dispatch({
@@ -245,7 +246,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         },this.errorHandler.bind(this))
     }
     delete(data):Promise<boolean>{
-        return this.fetch(this.url + this.key(data), Object.assign({},this.config,{
+        return this.fetch(this.url+'/' + this.key(data), Object.assign({},this.config,{
             method:"DELETE"
         })).then(res=>res.json()).then((res)=>{
             if(this.mapResToData(res,'delete',data)) {
@@ -267,7 +268,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         if(!this.key(data))
             return this['post'](data);
         else
-            return this.fetch(this.url +this.key(data), Object.assign({},this.config,{
+            return this.fetch(this.url+'/' +this.key(data), Object.assign({},this.config,{
                 method:"PUT",
                 body:JSON.stringify(data)
             })).then(res=>res.json()).then((res)=>{
@@ -305,10 +306,18 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     errorHandler(err){
         throw err;
     }
-    filter(_filter){
-        this.params = this.params?this.params(_filter):_filter;
+    filter(_filter:GridFilter){
+        this.query(this.mapFilterToQuery(_filter),true);
+        return this;
+    }
+    query(query,extend=false){
+        if(extend)
+            Object.assign(this._query,query);
+        else this._query = query;
+        return this;
     }
     markAsDirty(){
         this.LastCachedTime = -Infinity;
+        return this;
     }
 }

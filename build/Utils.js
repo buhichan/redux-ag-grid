@@ -47,7 +47,9 @@ function keyValueToQueryParams(params) {
         return "";
     else
         return "?" + Object.keys(params).map(function (key) {
-            return encodeURIComponent(key) + "=" + encodeURIComponent(JSON.stringify(params[key]));
+            var value = typeof params[key] === 'object' ?
+                JSON.stringify(params[key]) : params[key];
+            return encodeURIComponent(key) + "=" + encodeURIComponent(value);
         }).join("&");
 }
 exports.keyValueToQueryParams = keyValueToQueryParams;

@@ -7,10 +7,11 @@ var Utils_1 = require("./Utils");
 var RestfulResource = (function () {
     function RestfulResource(_a) {
         var _this = this;
-        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, params = _a.params, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, cacheTime = _a.cacheTime;
+        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, mapFilterToQuery = _a.mapFilterToQuery, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, cacheTime = _a.cacheTime;
         this.config = {};
-        if (url.substr(-1) !== '/')
-            url += '/';
+        this._query = {};
+        if (url.substr(-1) === '/')
+            url = url.slice(0, -1);
         this.key = key || (function (x) { return x['id']; });
         this.mapResToData = mapResToData || (function (x) { return x; });
         this.fetch = fetch || window.fetch;
@@ -20,7 +21,7 @@ var RestfulResource = (function () {
         this.cacheTime = cacheTime;
         switch (apiType) {
             case "NodeRestful": {
-                this.params = params || function (filter) {
+                this.mapFilterToQuery = mapFilterToQuery || function (filter) {
                     var _filter = {};
                     filter.search.forEach(function (condition) {
                         var key = condition.field.replace(/\[[^\]]*\]/, '');
@@ -43,7 +44,7 @@ var RestfulResource = (function () {
                 break;
             }
             case "Loopback": {
-                this.params = params || function (filter) {
+                this.mapFilterToQuery = mapFilterToQuery || function (filter) {
                     var _filter = { where: {} };
                     filter.search.forEach(function (condition) {
                         if (/^\/.*\/$/.test(condition.value))
@@ -62,9 +63,9 @@ var RestfulResource = (function () {
                     return { filter: _filter };
                 };
                 this.count = methods.count || (function () {
-                    if (_this.params && _this.params['filter'])
-                        _this.params['where'] = _this.params['filter'].where;
-                    return fetch(url + '/count' + Utils_1.keyValueToQueryParams(params(_this.params)), _this.config)
+                    if (_this._query && _this._query['filter'])
+                        _this._query['where'] = _this._query['filter']['where'];
+                    return fetch(url + '/count' + Utils_1.keyValueToQueryParams(_this._query), _this.config)
                         .then(function (res) { return res.json(); }).then(function (res) { return mapResToData(res, 'count'); }).then(function (res) {
                         dispatch({
                             type: "grid/model/count",
@@ -80,7 +81,7 @@ var RestfulResource = (function () {
                 break;
             }
             case "Swagger": {
-                this.params = params || (function (filter) {
+                this.mapFilterToQuery = mapFilterToQuery || (function (filter) {
                     var params = {};
                     if (filter.pagination) {
                         params['page'] = (filter.pagination.offset / filter.pagination.limit + 1);
@@ -99,12 +100,12 @@ var RestfulResource = (function () {
             if (actions instanceof Array)
                 actions.forEach(function (actionDef) {
                     _this.actions[actionDef.key || actionDef.name] =
-                        MakeAction_1(actionDef.name, actionDef, _this.gridName, _this.config, _this.params, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
+                        MakeAction_1(actionDef.name, actionDef, _this.gridName, _this.config, _this._query, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
                 });
             else
                 Object.keys(actions).forEach(function (actionName) {
                     _this.actions[actionName] =
-                        MakeAction_1(actionName, actions[actionName], _this.gridName, _this.config, _this.params, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
+                        MakeAction_1(actionName, actions[actionName], _this.gridName, _this.config, _this._query, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
                 });
         }
         if (methods)
@@ -120,7 +121,7 @@ var RestfulResource = (function () {
                 return Promise.resolve(this.GetAllCache);
             }
         }
-        return this.fetch(this.url + (id !== undefined ? id : "") + Utils_1.keyValueToQueryParams(this.params), this.config)
+        return this.fetch(this.url + (id !== undefined ? ("/" + id) : "") + Utils_1.keyValueToQueryParams(this._query), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
             var models = _this.mapResToData(res, 'get', id);
             if (!id) {
@@ -150,7 +151,7 @@ var RestfulResource = (function () {
     };
     RestfulResource.prototype.count = function () {
         var _this = this;
-        return this.fetch(this.url + 'count' + Utils_1.keyValueToQueryParams(this.params), this.config)
+        return this.fetch(this.url + '/' + 'count' + Utils_1.keyValueToQueryParams(this._query), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
             var count = _this.mapResToData(res, 'count');
             _this.dispatch({
@@ -167,7 +168,7 @@ var RestfulResource = (function () {
     };
     RestfulResource.prototype.delete = function (data) {
         var _this = this;
-        return this.fetch(this.url + this.key(data), Object.assign({}, this.config, {
+        return this.fetch(this.url + '/' + this.key(data), Object.assign({}, this.config, {
             method: "DELETE"
         })).then(function (res) { return res.json(); }).then(function (res) {
             if (_this.mapResToData(res, 'delete', data)) {
@@ -190,7 +191,7 @@ var RestfulResource = (function () {
         if (!this.key(data))
             return this['post'](data);
         else
-            return this.fetch(this.url + this.key(data), Object.assign({}, this.config, {
+            return this.fetch(this.url + '/' + this.key(data), Object.assign({}, this.config, {
                 method: "PUT",
                 body: JSON.stringify(data)
             })).then(function (res) { return res.json(); }).then(function (res) {
@@ -230,10 +231,20 @@ var RestfulResource = (function () {
         throw err;
     };
     RestfulResource.prototype.filter = function (_filter) {
-        this.params = this.params ? this.params(_filter) : _filter;
+        this.query(this.mapFilterToQuery(_filter), true);
+        return this;
+    };
+    RestfulResource.prototype.query = function (query, extend) {
+        if (extend === void 0) { extend = false; }
+        if (extend)
+            Object.assign(this._query, query);
+        else
+            this._query = query;
+        return this;
     };
     RestfulResource.prototype.markAsDirty = function () {
         this.LastCachedTime = -Infinity;
+        return this;
     };
     return RestfulResource;
 }());

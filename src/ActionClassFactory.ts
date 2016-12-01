@@ -35,7 +35,7 @@ export function RestfulActionClassFactory<T>(url:string){
         actionDef:RestfulActionDef<T>,
         gridName:string,
         config:RequestInit,
-        params:any,
+        params:{[key:string]:string},
         idGetter,
         modelPath:string[],
         fetch:typeof window.fetch,
@@ -49,7 +49,7 @@ export function RestfulActionClassFactory<T>(url:string){
         let ActionCacheMap = {};
 
         const action:ActionInstance<T> = function(data?) {
-            let action_url = url;
+            let action_url = url+'/';
             if(actionDef.path)
                 action_url += actionDef.path.replace(/(:\w+)(?=\/|$)/g,function(match){
                     if(match==='/id') return "/"+idGetter(data);

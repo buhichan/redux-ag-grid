@@ -43,7 +43,7 @@ export function GridReducer<T>(rootState, action: {
     type: GridActionTypes,
     value: GridActionPayload<T>
 }) {
-    let payload,list:List<T>;
+    let payload,list:List<T>,index;
     switch (action.type) {
         case "grid/model/get":
             return deepSetState(rootState, List((action.value as GridGetPayload<T>).models), ...action.value.modelPath);
@@ -53,13 +53,17 @@ export function GridReducer<T>(rootState, action: {
         case "grid/model/put":
             payload = action.value as GridPostPayload<T>;
             list = deepGetState(rootState,...payload.modelPath);
-            var index = list.findIndex(entry=>payload.key(entry)===payload.key(payload.model));
+            index = list.findIndex(entry=>payload.key(entry)===payload.key(payload.model));
             if(index>=0) {
                 return deepSetState(rootState, list.set(index, payload.model), ...payload.modelPath);
             }else return rootState;
         case "grid/model/post":
             payload = action.value as GridPutPayload<T>;
             list = deepGetState(rootState,...payload.modelPath);
+            if(!list)
+                list = List([]);
+            else if(!list.insert)
+                list = List(list);
             return deepSetState(rootState,list.insert(0,payload.model),...payload.modelPath);
         case "grid/model/delete":
             payload = action.value as GridDeletePayload<T>;
@@ -73,7 +77,7 @@ export function GridReducer<T>(rootState, action: {
         case "grid/model/change":
             payload = action.value as GridChangePayload<T>;
             list = deepGetState(rootState, ...payload.modelPath);
-            var index = list.findIndex(entry=>payload.key(entry)===payload.data.id);
+            index = list.findIndex(entry=>payload.key(entry)===payload.data.id);
             if(index>=0) {
                 return deepSetState(rootState, list.update(index, (item:T)=>{
                     let AllEqual = Object.keys(payload.data.changes).every(key=>{

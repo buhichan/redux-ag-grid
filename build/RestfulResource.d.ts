@@ -9,12 +9,16 @@ export interface Resource<T> {
     put(model: T): Promise<T>;
     delete(model: T): Promise<boolean>;
     count(): Promise<number>;
-    filter(filter: GridFilter): void;
+    query(query: {
+        [key: string]: string;
+    }): void;
 }
 export interface ActionResourceOptions<T> {
 }
 export declare class RestfulResource<Model, Actions> implements Resource<Model> {
-    params: (...args: any[]) => any;
+    mapFilterToQuery: (filter: GridFilter) => {
+        [key: string]: string;
+    };
     options: ActionResourceOptions<Model>;
     config: RequestInit;
     actions: Actions & {
@@ -28,12 +32,15 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     mapResToData: (resData: any, methodType?: "post" | "get" | "count" | "put" | "delete", reqData?: any) => Model | (Model[]) | number | boolean;
     fetch: typeof window.fetch;
     cacheTime?: number;
-    constructor({url, modelPath, dispatch, key, params, methods, apiType, fetch, mapResToData, actions, cacheTime}: {
+    _query: {
+        [key: string]: string;
+    };
+    constructor({url, modelPath, dispatch, key, mapFilterToQuery, methods, apiType, fetch, mapResToData, actions, cacheTime}: {
         url: string;
         modelPath: string[];
         dispatch: Dispatch<any>;
         key?;
-        params?: (filter: GridFilter) => ({
+        mapFilterToQuery?: (filter: GridFilter) => ({
             [id: string]: any;
         });
         methods?: Resource<Model>;
@@ -57,6 +64,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     put(data: any): Promise<Model>;
     post(data: any): Promise<Model>;
     errorHandler(err: any): void;
-    filter(_filter: any): void;
-    markAsDirty(): void;
+    filter(_filter: GridFilter): this;
+    query(query: any, extend?: boolean): this;
+    markAsDirty(): this;
 }

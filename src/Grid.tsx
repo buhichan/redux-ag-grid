@@ -8,7 +8,7 @@ import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
 import {AgGridReact} from "ag-grid-react"
 import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
-import {Resource, RestfulResource} from "./RestfulResource"
+import {RestfulResource} from "./RestfulResource"
 let {connect} =require("react-redux");
 import {deepGetState} from "./Utils";
 import {EnumFilter, DateFilter} from "./GridFilters";
@@ -54,18 +54,23 @@ export interface GridState{
     staticActions:ActionInstance<any>[]
 }
 
-export type ActionInstanceAlt<T> = BaseActionDef<T>&{
-    call:(data:T|T[])=>any
-};
+export interface InstanceAction<T> extends BaseActionDef<T>{
+    call:(data:T)=>any
+}
+
+export interface StaticAction<T> extends BaseActionDef<T> {
+    isStatic:true,
+    call:(data:T[])=>any
+}
 
 export interface GridProp<T>{
     gridName?:string,
     gridApi?:(gridApi:GridApi)=>void,
     store?:Immutable.Map<any,any>,
-    resource?:Resource<T>,
+    resource?:RestfulResource<T,any>,
     modelPath?:string[]
     schema?:GridFieldSchema[],
-    actions?:(ActionInstanceAlt<T>|string)[],
+    actions?:(InstanceAction<T>|StaticAction<T>|string)[],
     gridOptions?:any,
     dispatch?:Dispatch<any>
     height?:number,
@@ -163,7 +168,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                     getRows: (params: IGetRowsParams)=> {
                         let data = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
                         if (data.length < params.endRow) {
-                            const resource = this.props.resource as RestfulResource<T,any>;
+                            const resource = this.props.resource;
                             resource.filter({
                                 pagination: {
                                     offset: params.startRow,
@@ -255,7 +260,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                     else
                         rowActions.push(restResource.actions[action]);
                 } else{
-                    const actionInst = action as ActionInstanceAlt<T>;
+                    const actionInst = action as StaticAction<T>;
                     actionInst.call['isStatic'] = actionInst.isStatic;
                     actionInst.call['enabled'] = actionInst.enabled;
                     actionInst.call['displayName'] = actionInst.displayName;

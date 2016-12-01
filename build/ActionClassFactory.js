@@ -11,7 +11,7 @@ function RestfulActionClassFactory(url) {
         actionDef.params = actionDef.params || (function () { return ({}); });
         var ActionCacheMap = {};
         var action = function (data) {
-            var action_url = url;
+            var action_url = url + '/';
             if (actionDef.path)
                 action_url += actionDef.path.replace(/(:\w+)(?=\/|$)/g, function (match) {
                     if (match === '/id')

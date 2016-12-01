@@ -1,7 +1,7 @@
 import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
 import { AbstractColDef, GridApi, ColumnApi } from "ag-grid";
-import { Resource } from "./RestfulResource";
+import { RestfulResource } from "./RestfulResource";
 import { ActionInstance, BaseActionDef } from "./ActionClassFactory";
 import Dispatch = Redux.Dispatch;
 import { ITheme } from "./themes";
@@ -43,17 +43,21 @@ export interface GridState {
     selectAll?: boolean;
     staticActions: ActionInstance<any>[];
 }
-export declare type ActionInstanceAlt<T> = BaseActionDef<T> & {
-    call: (data: T | T[]) => any;
-};
+export interface InstanceAction<T> extends BaseActionDef<T> {
+    call: (data: T) => any;
+}
+export interface StaticAction<T> extends BaseActionDef<T> {
+    isStatic: true;
+    call: (data: T[]) => any;
+}
 export interface GridProp<T> {
     gridName?: string;
     gridApi?: (gridApi: GridApi) => void;
     store?: Immutable.Map<any, any>;
-    resource?: Resource<T>;
+    resource?: RestfulResource<T, any>;
     modelPath?: string[];
     schema?: GridFieldSchema[];
-    actions?: (ActionInstanceAlt<T> | string)[];
+    actions?: (InstanceAction<T> | StaticAction<T> | string)[];
     gridOptions?: any;
     dispatch?: Dispatch<any>;
     height?: number;
