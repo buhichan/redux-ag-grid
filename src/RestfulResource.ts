@@ -60,7 +60,9 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     mapResToData:(resData:any,methodType?:"post"|"get"|"count"|"put"|"delete",reqData?:any)=>Model|(Model[])|number|boolean;
     fetch:typeof window.fetch;
     cacheTime?:number;
+    isCustomFilterPresent=false;
     _query:{[key:string]:string}={};
+    _filter:{[key:string]:string}={};
     constructor({
         url,
         modelPath,
@@ -72,7 +74,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         fetch,
         mapResToData,
         actions,
-        cacheTime,
+        cacheTime=1,
     }:{
         url:string,
         modelPath:string[],
@@ -177,12 +179,12 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             if(actions instanceof Array)
                 actions.forEach(actionDef=>{
                     this.actions[actionDef.key||actionDef.name]=
-                        MakeAction(actionDef.name,actionDef,this.gridName,this.config,this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
+                        MakeAction(actionDef.name,actionDef,this.gridName,this.config,()=>this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
                 });
             else
                 Object.keys(actions).forEach((actionName)=> {
                     this.actions[actionName]=
-                        MakeAction(actionName,actions[actionName],this.gridName,this.config,this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
+                        MakeAction(actionName,actions[actionName],this.gridName,this.config,()=>this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
                 });
         }
         if(methods)
@@ -191,46 +193,54 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                     this[method] = methods[method].bind(this)
             })
     }
-    GetAllCache:Model[];
+    lastGetAll:Promise<Model[]> | null = null;
     LastCachedTime:number;
         //TODO catch exception
     get():Promise<Model[]>
     get(id):Promise<Model>
     get(id?):Promise<Model[]|Model>{
-        if(this.cacheTime){
-            if(!id && Date.now()-this.LastCachedTime<this.cacheTime*1000){
-                return Promise.resolve(this.GetAllCache);
+        if(!id){
+            if(!this.isCustomFilterPresent && this.cacheTime && this.lastGetAll && Date.now()-this.LastCachedTime<this.cacheTime*1000){
+                return this.lastGetAll;
             }
         }
-        return this.fetch(this.url+(id!==undefined?("/"+id):"")+keyValueToQueryParams(this._query),this.config)
+        this.LastCachedTime = Date.now();
+        const pending = this.fetch(this.url+(id!==undefined?("/"+id):"")+this.getQueryString(),this.config)
             .then(res=>res.json()).then((res)=>{
                 const models = this.mapResToData(res,'get',id) as any;
-                if(!id) {
-                    this.dispatch({
-                        type: "grid/model/get",
-                        value: {
-                            modelPath: this.modelPath,
-                            key: this.key,
-                            models
-                        }
-                    });
-                    this.GetAllCache = models as Model[];
-                    this.LastCachedTime = Date.now();
-                }else{
-                    this.dispatch({
-                        type: "grid/model/put",
-                        value:{
-                            modelPath:this.modelPath,
-                            key:this.key,
-                            model:models
-                        }
-                    });
+                if(!this.isCustomFilterPresent) {
+                    if (!id) {
+                        this.dispatch({
+                            type: "grid/model/get",
+                            value: {
+                                modelPath: this.modelPath,
+                                key: this.key,
+                                models
+                            }
+                        });
+                    } else {
+                        this.dispatch({
+                            type: "grid/model/put",
+                            value: {
+                                modelPath: this.modelPath,
+                                key: this.key,
+                                model: models
+                            }
+                        });
+                    }
                 }
                 return models;
-        },this.errorHandler.bind(this));
+        },(e)=>{
+            if(!this.isCustomFilterPresent)
+                this.lastGetAll = null;
+            return this.errorHandler(e);
+        });
+        if(!id && !this.isCustomFilterPresent)
+            this.lastGetAll = pending;
+        return pending;
     }
     count():Promise<number>{
-        return this.fetch(this.url+'/' + 'count'+keyValueToQueryParams(this._query),this.config)
+        return this.fetch(this.url+'/' + 'count'+this.getQueryString(),this.config)
             .then(res=>res.json()).then((res)=>{
                 const count = this.mapResToData(res,'count');
                 this.dispatch({
@@ -303,17 +313,24 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             return model;
         },this.errorHandler.bind(this))
     }
-    errorHandler(err){
-        throw err;
+    errorHandler(e){
+        throw e;
+    }
+    getQueryString(){
+        return keyValueToQueryParams(Object.assign({},this._filter,this._query));
     }
     filter(_filter:GridFilter){
-        this.query(this.mapFilterToQuery(_filter),true);
+        this._filter = this.mapFilterToQuery(_filter);
         return this;
     }
-    query(query,extend=false){
-        if(extend)
-            Object.assign(this._query,query);
-        else this._query = query;
+    query(query){
+        if(!query || !Object.keys(query).length){
+            this._query = {};
+            this.isCustomFilterPresent = false;
+        }else{
+            this._query = query;
+            this.isCustomFilterPresent = true;
+        }
         return this;
     }
     markAsDirty(){

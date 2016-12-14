@@ -13,6 +13,8 @@ export declare type GridRendererProps = {
     actions: ActionInstance<any>[];
     height: number;
     children?: any[];
+    noSearch?: boolean;
+    noSelect?: boolean;
 };
 export interface ITheme {
     SelectFieldRenderer: (options: Options) => React.StatelessComponent<any> | React.ComponentClass<any>;

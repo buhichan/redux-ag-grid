@@ -14,6 +14,8 @@ export type GridRendererProps = {
     actions:ActionInstance<any>[]
     height:number
     children?:any[]
+    noSearch?:boolean
+    noSelect?:boolean
 };
 
 export interface ITheme{

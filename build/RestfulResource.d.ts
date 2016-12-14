@@ -32,7 +32,11 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     mapResToData: (resData: any, methodType?: "post" | "get" | "count" | "put" | "delete", reqData?: any) => Model | (Model[]) | number | boolean;
     fetch: typeof window.fetch;
     cacheTime?: number;
+    isCustomFilterPresent: boolean;
     _query: {
+        [key: string]: string;
+    };
+    _filter: {
         [key: string]: string;
     };
     constructor({url, modelPath, dispatch, key, mapFilterToQuery, methods, apiType, fetch, mapResToData, actions, cacheTime}: {
@@ -55,7 +59,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         }>;
         cacheTime?: number;
     });
-    GetAllCache: Model[];
+    lastGetAll: Promise<Model[]> | null;
     LastCachedTime: number;
     get(): Promise<Model[]>;
     get(id: any): Promise<Model>;
@@ -63,8 +67,9 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     delete(data: any): Promise<boolean>;
     put(data: any): Promise<Model>;
     post(data: any): Promise<Model>;
-    errorHandler(err: any): void;
+    errorHandler(e: any): void;
+    getQueryString(): string;
     filter(_filter: GridFilter): this;
-    query(query: any, extend?: boolean): this;
+    query(query: any): this;
     markAsDirty(): this;
 }

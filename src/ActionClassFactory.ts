@@ -16,7 +16,7 @@ export interface RestfulActionDef<T> extends BaseActionDef<T>{
 }
 
 export interface ActionInstance<T> {
-    (data?:T|T[]):any,
+    (data?:T|T[],e?:Event):any,
     displayName?:string,
     isStatic?:boolean,
     enabled?:(data:T)=>boolean,
@@ -35,7 +35,7 @@ export function RestfulActionClassFactory<T>(url:string){
         actionDef:RestfulActionDef<T>,
         gridName:string,
         config:RequestInit,
-        params:{[key:string]:string},
+        getQuery:()=>{[key:string]:string},
         idGetter,
         modelPath:string[],
         fetch:typeof window.fetch,
@@ -62,7 +62,7 @@ export function RestfulActionClassFactory<T>(url:string){
                 action_url += idGetter(data)+"/"+actionName;
             if(actionDef.data && data)
                 RequestConfig.body = JSON.stringify(actionDef.data(data));
-            let RequestParams = Object.assign({},params,actionDef.params(data));
+            let RequestParams = Object.assign({},getQuery(),actionDef.params(data));
             action_url += keyValueToQueryParams(RequestParams);
             let promise;
             if(actionDef.cacheTime) {
@@ -73,16 +73,17 @@ export function RestfulActionClassFactory<T>(url:string){
                         promise = Promise.resolve(cachedValue);
                 }
             }
-            if(!promise)
-                promise = fetch(action_url,RequestConfig).then(res=>res.json()).then(res=>{
-                    const data = mapResToData(res,actionName);
-                    if(actionDef.cacheTime)
+            if(!promise) {
+                promise = fetch(action_url, RequestConfig).then(res => res.json()).then(res => {
+                    const data = mapResToData(res, actionDef['key'] || actionName);
+                    if (actionDef.cacheTime)
                         ActionCacheMap[action_url] = {
-                            cachedValue:data,
-                            LastCachedTime:Date.now()
+                            cachedValue: data,
+                            LastCachedTime: Date.now()
                         };
                     return data;
                 });
+            }
             if(actionDef.then)
                 return promise.then(res=>{
                     const actionResult = actionDef.then(data,res);

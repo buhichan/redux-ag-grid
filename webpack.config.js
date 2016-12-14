@@ -34,7 +34,7 @@ var config = {
             exclude: /node_modules/
         },{
             test: /\.css$/,
-            loader: ExtractTextPlugin.extract('style', 'css?sourceMap&-url!postcss')
+            loader: ExtractTextPlugin.extract('style', 'css?sourceMap&-url')
         },{
             test: /\.html$/,
             loader: 'raw'

@@ -7,9 +7,12 @@ var Utils_1 = require("./Utils");
 var RestfulResource = (function () {
     function RestfulResource(_a) {
         var _this = this;
-        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, mapFilterToQuery = _a.mapFilterToQuery, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, cacheTime = _a.cacheTime;
+        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, mapFilterToQuery = _a.mapFilterToQuery, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, _b = _a.cacheTime, cacheTime = _b === void 0 ? 1 : _b;
         this.config = {};
+        this.isCustomFilterPresent = false;
         this._query = {};
+        this._filter = {};
+        this.lastGetAll = null;
         if (url.substr(-1) === '/')
             url = url.slice(0, -1);
         this.key = key || (function (x) { return x['id']; });
@@ -100,12 +103,12 @@ var RestfulResource = (function () {
             if (actions instanceof Array)
                 actions.forEach(function (actionDef) {
                     _this.actions[actionDef.key || actionDef.name] =
-                        MakeAction_1(actionDef.name, actionDef, _this.gridName, _this.config, _this._query, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
+                        MakeAction_1(actionDef.name, actionDef, _this.gridName, _this.config, function () { return _this._query; }, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
                 });
             else
                 Object.keys(actions).forEach(function (actionName) {
                     _this.actions[actionName] =
-                        MakeAction_1(actionName, actions[actionName], _this.gridName, _this.config, _this._query, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
+                        MakeAction_1(actionName, actions[actionName], _this.gridName, _this.config, function () { return _this._query; }, _this.key, modelPath, fetch, _this.mapResToData, _this.dispatch);
                 });
         }
         if (methods)
@@ -116,42 +119,50 @@ var RestfulResource = (function () {
     }
     RestfulResource.prototype.get = function (id) {
         var _this = this;
-        if (this.cacheTime) {
-            if (!id && Date.now() - this.LastCachedTime < this.cacheTime * 1000) {
-                return Promise.resolve(this.GetAllCache);
+        if (!id) {
+            if (!this.isCustomFilterPresent && this.cacheTime && this.lastGetAll && Date.now() - this.LastCachedTime < this.cacheTime * 1000) {
+                return this.lastGetAll;
             }
         }
-        return this.fetch(this.url + (id !== undefined ? ("/" + id) : "") + Utils_1.keyValueToQueryParams(this._query), this.config)
+        this.LastCachedTime = Date.now();
+        var pending = this.fetch(this.url + (id !== undefined ? ("/" + id) : "") + this.getQueryString(), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
             var models = _this.mapResToData(res, 'get', id);
-            if (!id) {
-                _this.dispatch({
-                    type: "grid/model/get",
-                    value: {
-                        modelPath: _this.modelPath,
-                        key: _this.key,
-                        models: models
-                    }
-                });
-                _this.GetAllCache = models;
-                _this.LastCachedTime = Date.now();
-            }
-            else {
-                _this.dispatch({
-                    type: "grid/model/put",
-                    value: {
-                        modelPath: _this.modelPath,
-                        key: _this.key,
-                        model: models
-                    }
-                });
+            if (!_this.isCustomFilterPresent) {
+                if (!id) {
+                    _this.dispatch({
+                        type: "grid/model/get",
+                        value: {
+                            modelPath: _this.modelPath,
+                            key: _this.key,
+                            models: models
+                        }
+                    });
+                }
+                else {
+                    _this.dispatch({
+                        type: "grid/model/put",
+                        value: {
+                            modelPath: _this.modelPath,
+                            key: _this.key,
+                            model: models
+                        }
+                    });
+                }
             }
             return models;
-        }, this.errorHandler.bind(this));
+        }, function (e) {
+            if (!_this.isCustomFilterPresent)
+                _this.lastGetAll = null;
+            return _this.errorHandler(e);
+        });
+        if (!id && !this.isCustomFilterPresent)
+            this.lastGetAll = pending;
+        return pending;
     };
     RestfulResource.prototype.count = function () {
         var _this = this;
-        return this.fetch(this.url + '/' + 'count' + Utils_1.keyValueToQueryParams(this._query), this.config)
+        return this.fetch(this.url + '/' + 'count' + this.getQueryString(), this.config)
             .then(function (res) { return res.json(); }).then(function (res) {
             var count = _this.mapResToData(res, 'count');
             _this.dispatch({
@@ -227,19 +238,25 @@ var RestfulResource = (function () {
             return model;
         }, this.errorHandler.bind(this));
     };
-    RestfulResource.prototype.errorHandler = function (err) {
-        throw err;
+    RestfulResource.prototype.errorHandler = function (e) {
+        throw e;
+    };
+    RestfulResource.prototype.getQueryString = function () {
+        return Utils_1.keyValueToQueryParams(Object.assign({}, this._filter, this._query));
     };
     RestfulResource.prototype.filter = function (_filter) {
-        this.query(this.mapFilterToQuery(_filter), true);
+        this._filter = this.mapFilterToQuery(_filter);
         return this;
     };
-    RestfulResource.prototype.query = function (query, extend) {
-        if (extend === void 0) { extend = false; }
-        if (extend)
-            Object.assign(this._query, query);
-        else
+    RestfulResource.prototype.query = function (query) {
+        if (!query || !Object.keys(query).length) {
+            this._query = {};
+            this.isCustomFilterPresent = false;
+        }
+        else {
             this._query = query;
+            this.isCustomFilterPresent = true;
+        }
         return this;
     };
     RestfulResource.prototype.markAsDirty = function () {

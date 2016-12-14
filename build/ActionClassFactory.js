@@ -4,7 +4,7 @@
 "use strict";
 var Utils_1 = require("./Utils");
 function RestfulActionClassFactory(url) {
-    return function Action(actionName, actionDef, gridName, config, params, idGetter, modelPath, fetch, mapResToData, dispatch) {
+    return function Action(actionName, actionDef, gridName, config, getQuery, idGetter, modelPath, fetch, mapResToData, dispatch) {
         var RequestConfig = Object.assign({
             method: actionDef.method || "POST"
         }, config);
@@ -25,7 +25,7 @@ function RestfulActionClassFactory(url) {
                 action_url += idGetter(data) + "/" + actionName;
             if (actionDef.data && data)
                 RequestConfig.body = JSON.stringify(actionDef.data(data));
-            var RequestParams = Object.assign({}, params, actionDef.params(data));
+            var RequestParams = Object.assign({}, getQuery(), actionDef.params(data));
             action_url += Utils_1.keyValueToQueryParams(RequestParams);
             var promise;
             if (actionDef.cacheTime) {
@@ -36,9 +36,9 @@ function RestfulActionClassFactory(url) {
                         promise = Promise.resolve(cachedValue);
                 }
             }
-            if (!promise)
+            if (!promise) {
                 promise = fetch(action_url, RequestConfig).then(function (res) { return res.json(); }).then(function (res) {
-                    var data = mapResToData(res, actionName);
+                    var data = mapResToData(res, actionDef['key'] || actionName);
                     if (actionDef.cacheTime)
                         ActionCacheMap[action_url] = {
                             cachedValue: data,
@@ -46,6 +46,7 @@ function RestfulActionClassFactory(url) {
                         };
                     return data;
                 });
+            }
             if (actionDef.then)
                 return promise.then(function (res) {
                     var actionResult = actionDef.then(data, res);

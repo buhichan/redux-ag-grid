@@ -47,9 +47,17 @@ function keyValueToQueryParams(params) {
         return "";
     else
         return "?" + Object.keys(params).map(function (key) {
-            var value = typeof params[key] === 'object' ?
-                JSON.stringify(params[key]) : params[key];
-            return encodeURIComponent(key) + "=" + encodeURIComponent(value);
+            if (params[key] instanceof Array) {
+                key = encodeURIComponent(key);
+                return params[key].map(function (entry) {
+                    return key + "[]=" + encodeURIComponent(entry);
+                }).join("&");
+            }
+            else {
+                var value = typeof params[key] === 'object' ?
+                    JSON.stringify(params[key]) : params[key];
+                return encodeURIComponent(key) + "=" + encodeURIComponent(value);
+            }
         }).join("&");
 }
 exports.keyValueToQueryParams = keyValueToQueryParams;

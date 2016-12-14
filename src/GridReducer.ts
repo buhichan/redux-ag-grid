@@ -53,7 +53,9 @@ export function GridReducer<T>(rootState, action: {
         case "grid/model/put":
             payload = action.value as GridPostPayload<T>;
             list = deepGetState(rootState,...payload.modelPath);
+            if(!list) return deepSetState(rootState,List([payload]),...payload.modelPath);
             index = list.findIndex(entry=>payload.key(entry)===payload.key(payload.model));
+            if(index<0) return deepSetState(rootState,list.push(payload.model),...payload.modelPath);
             if(index>=0) {
                 return deepSetState(rootState, list.set(index, payload.model), ...payload.modelPath);
             }else return rootState;

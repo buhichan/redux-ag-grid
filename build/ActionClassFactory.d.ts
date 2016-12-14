@@ -8,7 +8,7 @@ export interface RestfulActionDef<T> extends BaseActionDef<T> {
     cacheTime?: number;
 }
 export interface ActionInstance<T> {
-    (data?: T | T[]): any;
+    (data?: T | T[], e?: Event): any;
     displayName?: string;
     isStatic?: boolean;
     enabled?: (data: T) => boolean;
@@ -19,6 +19,6 @@ export interface BaseActionDef<T> {
     displayName?: string;
     enabled?: (model: T) => boolean;
 }
-export declare function RestfulActionClassFactory<T>(url: string): (actionName: string, actionDef: RestfulActionDef<T>, gridName: string, config: RequestInit, params: {
+export declare function RestfulActionClassFactory<T>(url: string): (actionName: string, actionDef: RestfulActionDef<T>, gridName: string, config: RequestInit, getQuery: () => {
     [key: string]: string;
 }, idGetter: any, modelPath: string[], fetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>, mapResToData: any, dispatch: Dispatch<any>) => ActionInstance<T>;

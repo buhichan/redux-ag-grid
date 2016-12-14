@@ -37,8 +37,16 @@ export function keyValueToQueryParams(params?:{[id:string]:any}):string{
     if(!keys.length) return "";
     else
     return "?"+Object.keys(params).map(key=>{
-        const value = typeof params[key] === 'object'?
-            JSON.stringify(params[key]):params[key];
-        return encodeURIComponent(key)+"="+encodeURIComponent(value)
+
+        if(params[key] instanceof Array){
+            key = encodeURIComponent(key);
+            return params[key].map((entry)=>{
+                return key+"[]="+encodeURIComponent(entry)
+            }).join("&")
+        }else {
+            const value = typeof params[key] === 'object' ?
+                JSON.stringify(params[key]) : params[key];
+            return encodeURIComponent(key) + "=" + encodeURIComponent(value)
+        }
     }).join("&")
 }

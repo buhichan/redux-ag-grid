@@ -15,7 +15,11 @@ function GridReducer(rootState, action) {
         case "grid/model/put":
             payload = action.value;
             list = Utils_1.deepGetState.apply(void 0, [rootState].concat(payload.modelPath));
+            if (!list)
+                return Utils_1.deepSetState.apply(void 0, [rootState, immutable_1.List([payload])].concat(payload.modelPath));
             index = list.findIndex(function (entry) { return payload.key(entry) === payload.key(payload.model); });
+            if (index < 0)
+                return Utils_1.deepSetState.apply(void 0, [rootState, list.push(payload.model)].concat(payload.modelPath));
             if (index >= 0) {
                 return Utils_1.deepSetState.apply(void 0, [rootState, list.set(index, payload.model)].concat(payload.modelPath));
             }

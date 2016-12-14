@@ -24,7 +24,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-require("ag-grid/dist/styles/ag-grid.css");
+require("../node_modules/ag-grid/dist/styles/ag-grid.css");
 var react_1 = require("react");
 var React = require("react");
 var ag_grid_react_1 = require("ag-grid-react");
@@ -33,12 +33,30 @@ var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
 require("./themes/Bootstrap");
+var formatDate = new Intl.DateTimeFormat(['zh-cn'], {
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+});
+var formatDateTime = new Intl.DateTimeFormat(['zh-cn'], {
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+});
 function getModel(store, modelPath) {
     var data = Utils_1.deepGetState.apply(void 0, [store].concat(modelPath));
-    if (data.toArray)
+    if (data && data.toArray)
         data = data.toArray();
     return data;
 }
+var formatNumber = new Intl.NumberFormat([], {
+    currency: "CNY"
+});
 var Grid = (function (_super) {
     __extends(Grid, _super);
     function Grid(props) {
@@ -71,14 +89,25 @@ var Grid = (function (_super) {
         };
         Object.assign(this.state.gridOptions, props.gridOptions);
     }
+    Grid.prototype.shouldComponentUpdate = function (nextProps, nextState) {
+        if (this.props.schema !== nextProps.schema ||
+            this.props.actions !== nextProps.actions ||
+            this.state.gridOptions.colDef !== nextState.gridOptions.colDef ||
+            this.state.staticActions !== nextState.staticActions)
+            return true;
+        if (this.props.resource)
+            return getModel(this.props.storeState, this.props.resource.modelPath) !== getModel(nextProps.storeState, nextProps.resource.modelPath);
+        else
+            return this.props.data !== nextProps.data;
+    };
     Grid.prototype.componentWillMount = function () {
         var _this = this;
         if (!this.props.resource && !this.props.data) {
             throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
         }
         else if (this.props.resource) {
-            if (!this.props.modelPath && !this.props.resource['modelPath'])
-                throw new Error("请声明modelPath:string[]");
+            if (!this.props.resource.modelPath)
+                throw new Error("请在resource上声明modelPath:string[]");
             this.props.resource.get();
             this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
         }
@@ -112,16 +141,16 @@ var Grid = (function (_super) {
             columnDefs: columnDefs,
             context: {
                 getSelected: function () { return _this.gridApi.getSelectedRows(); },
-                dispatch: this.props.dispatch,
-                rowActions: rowActions
+                dispatch: this.props.dispatch
             },
         });
         if (this.props.resource) {
+            //todo: server side filtering
             if (this.props.serverSideFilter) {
                 gridOptions['rowModelType'] = 'virtual';
                 gridOptions['datasource'] = {
                     getRows: function (params) {
-                        var data = getModel(_this.props.store, _this.props.modelPath || _this.props.resource['modelPath']);
+                        var data = getModel(_this.props.storeState, _this.props.resource.modelPath);
                         if (data.length < params.endRow) {
                             var resource = _this.props.resource;
                             resource.filter({
@@ -131,7 +160,7 @@ var Grid = (function (_super) {
                                 }
                             });
                             resource.get().then(function () {
-                                var data = getModel(_this.props.store, _this.props.modelPath || _this.props.resource['modelPath']);
+                                var data = getModel(_this.props.storeState, _this.props.resource.modelPath);
                                 params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
                             });
                         }
@@ -141,7 +170,7 @@ var Grid = (function (_super) {
                 };
             }
             else
-                gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
         }
         this.setState({
             staticActions: staticActions,
@@ -157,49 +186,83 @@ var Grid = (function (_super) {
     Grid.prototype.componentWillReceiveProps = function (newProps) {
         var _this = this;
         if (newProps.schema !== this.props.schema)
-            this.parseSchema(this.props.schema).then(function (parsed) {
-                _this.setState({
-                    parsedSchema: parsed
-                });
+            this.parseSchema(newProps.schema).then(function (parsed) {
+                _this.onReady(parsed);
             });
     };
     Grid.prototype.parseSchema = function (schema) {
         var _this = this;
         return Promise.all(schema.map(function (column) {
-            var parseField = function (options) {
-                var colDef = {
-                    field: column.key,
-                    headerName: column.label,
-                    cellRenderer: column.cellRenderer,
-                    cellRendererParams: column.cellRendererParams
-                };
+            var syncParseField = function (options, children) {
+                var colDef = Object.assign({
+                    headerName: column.label
+                }, column);
                 switch (column.type) {
                     case "select":
+                        colDef['valueGetter'] = function enumValueGetter(_a) {
+                            var colDef = _a.colDef, data = _a.data;
+                            function getValueByName(entryValue) {
+                                var i = options.findIndex(function (x) { return x.value == entryValue; });
+                                if (i < 0)
+                                    return null;
+                                else
+                                    return options[i].name;
+                            }
+                            var value = data[colDef.key];
+                            if (value instanceof Array)
+                                return value.map(getValueByName).filter(null);
+                            else
+                                return getValueByName(value);
+                        };
                         colDef['cellRendererFramework'] = _this.state.themeRenderer.SelectFieldRenderer(options);
                         colDef['options'] = column.options;
                         colDef['filterFramework'] = GridFilters_1.EnumFilter;
                         break;
                     case "date":
                     case "datetime-local":
-                        var method_1;
+                        var formatter_1;
                         if (column.type === "date")
-                            method_1 = "toLocaleDateString";
+                            formatter_1 = formatDate;
                         else
-                            method_1 = "toLocaleString";
-                        colDef['cellRenderer'] = function (params) {
-                            return (params.value !== null && params.value !== undefined) ? new Date(params.value)[method_1]('zh-cn') : "";
+                            formatter_1 = formatDateTime;
+                        colDef['valueGetter'] = function (_a) {
+                            var colDef = _a.colDef, data = _a.data;
+                            return (data[colDef.key]) ? formatter_1.format(new Date(data[colDef.key])) : "";
                         };
                         colDef['filterFramework'] = GridFilters_1.DateFilter;
                         break;
+                    case "number":
+                        colDef['valueGetter'] = function (_a) {
+                            var colDef = _a.colDef, data = _a.data;
+                            return formatNumber.format(data[colDef.key]);
+                        };
+                        break;
+                    case "checkbox":
+                        colDef['valueGetter'] = function (_a) {
+                            var colDef = _a.colDef, data = _a.data;
+                            return data[colDef.key] ? "是" : "否";
+                        };
+                        break;
+                    case "group":
+                        colDef['children'] = children;
+                        colDef['marryChildren'] = true;
+                        break;
+                    default:
+                        colDef['field'] = column.key;
                 }
                 return colDef;
             };
             if (column.options && typeof column.options === 'function') {
                 var asyncOptions = column.options;
-                return asyncOptions().then(parseField);
+                return asyncOptions().then(syncParseField);
+            }
+            else if (column.type === 'group' && column.children) {
+                return _this.parseSchema(column.children).then(function (children) {
+                    return syncParseField(column.options, children);
+                });
             }
             else
-                return Promise.resolve(parseField(column.options));
+                return Promise.resolve(syncParseField(column.options));
         }));
     };
     Grid.prototype.getActions = function () {
@@ -242,11 +305,11 @@ var Grid = (function (_super) {
         var _this = this;
         var _a = this.state, staticActions = _a.staticActions, gridOptions = _a.gridOptions;
         if (!this.props.serverSideFilter && this.props.resource)
-            gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+            gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
         else if (this.props.data)
             gridOptions['rowData'] = this.props.data;
         var GridRenderer = this.state.themeRenderer.GridRenderer;
-        return React.createElement(GridRenderer, {actions: staticActions, onSelectAll: function () {
+        return React.createElement(GridRenderer, {noSearch: this.props.noSearch, noSelect: this.props.noSelect, actions: staticActions, onSelectAll: function () {
             _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();
             _this.state.selectAll = !_this.state.selectAll;
         }, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height}, 
@@ -254,7 +317,7 @@ var Grid = (function (_super) {
         );
     };
     Grid = __decorate([
-        connect(function (store) { return ({ store: store }); }), 
+        connect(function (storeState) { return ({ storeState: storeState }); }), 
         __metadata('design:paramtypes', [Object])
     ], Grid);
     return Grid;

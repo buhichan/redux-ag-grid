@@ -2,12 +2,12 @@
  * Created by YS on 2016/9/24.
  */
 "use strict";
-import "ag-grid/dist/styles/ag-grid.css"
+import "../node_modules/ag-grid/dist/styles/ag-grid.css"
 import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
 import {AgGridReact} from "ag-grid-react"
-import {AbstractColDef,GridApi,ColumnApi} from "ag-grid";
+import {AbstractColDef,ColGroupDef,ColDef,GridApi,ColumnApi} from "ag-grid";
 import {RestfulResource} from "./RestfulResource"
 let {connect} =require("react-redux");
 import {deepGetState} from "./Utils";
@@ -16,6 +16,7 @@ import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import Dispatch = Redux.Dispatch;
 import {currentTheme, ITheme} from "./themes"
 import "./themes/Bootstrap"
+import SyntheticEvent = __React.SyntheticEvent;
 
 export interface GridFilter{
     quickFilterText?:string,
@@ -34,41 +35,57 @@ export interface GridFilter{
     }
 }
 
-export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|null
-export type Options = {name:string,value:string}[]
+const formatDate = new Intl.DateTimeFormat(['zh-CN'],{
+    hour12:false,
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+});
+
+const formatDateTime = new Intl.DateTimeFormat(['zh-CN'],{
+    hour12:false,
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit",
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit"
+});
+
+export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|"group"|null
+export type Options = {name:string,value:string|number}[]
 export type AsyncOptions = ()=>Promise<Options>
-export interface GridFieldSchema{
-    type?:columnType,
+
+export interface GridFieldSchema extends ColDef{
+    type:columnType,
     key:string,
     label:string,
     options?:Options | AsyncOptions,
-    cellRenderer?:any,
-    cellRendererParams?:any
+    children?:GridFieldSchema[]
 }
 
-export interface GridState{
+export interface GridState<T>{
     quickFilterText?:string,
     gridOptions?:any,
     themeRenderer:ITheme,
     selectAll?:boolean,
-    staticActions:ActionInstance<any>[]
+    staticActions:ActionInstance<T>[]
 }
 
 export interface InstanceAction<T> extends BaseActionDef<T>{
-    call:(data:T)=>any
+    call:(data:T,e?:Event)=>any
 }
 
 export interface StaticAction<T> extends BaseActionDef<T> {
     isStatic:true,
-    call:(data:T[])=>any
+    call:(data:T[],e?:Event)=>any
 }
 
-export interface GridProp<T>{
+export interface GridProps<T>{
     gridName?:string,
     gridApi?:(gridApi:GridApi)=>void,
-    store?:Immutable.Map<any,any>,
+    storeState?:Immutable.Map<any,any>,
     resource?:RestfulResource<T,any>,
-    modelPath?:string[]
     schema?:GridFieldSchema[],
     actions?:(InstanceAction<T>|StaticAction<T>|string)[],
     gridOptions?:any,
@@ -76,21 +93,38 @@ export interface GridProp<T>{
     height?:number,
     serverSideFilter?:boolean,
     data?:T[] | Immutable.List<T>
+    noSearch?:boolean
+    noSelect?:boolean
 }
 
 function getModel(store,modelPath){
     let data = deepGetState(store,...modelPath);
-    if(data.toArray)
+    if(data && data.toArray)
         data = data.toArray();
     return data;
 }
 
+const formatNumber= new Intl.NumberFormat([],{
+    currency:"CNY"
+});
+
 @connect(
-    store=>({store})
+    storeState=>({storeState})
 )
-export class Grid<T> extends Component<GridProp<T>,GridState>{
+export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
     gridApi:GridApi;
     columnApi:ColumnApi;
+    shouldComponentUpdate(nextProps:GridProps<T>,nextState:GridState<T>){
+        if(this.props.schema !== nextProps.schema ||
+            this.props.actions !== nextProps.actions ||
+            this.state.gridOptions.colDef !== nextState.gridOptions.colDef ||
+            this.state.staticActions !== nextState.staticActions
+        ) return true;
+        if(this.props.resource) //resource mode
+            return getModel(this.props.storeState, this.props.resource.modelPath) !== getModel(nextProps.storeState,nextProps.resource.modelPath);
+        else //data mode
+            return this.props.data !== nextProps.data;
+    }
     constructor(props){
         super(props);
         this.state = {
@@ -123,8 +157,8 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
         if(!this.props.resource && !this.props.data) {
             throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
         }else if(this.props.resource){
-            if (!this.props.modelPath && !this.props.resource['modelPath'])
-                throw new Error("请声明modelPath:string[]");
+            if (!this.props.resource.modelPath)
+                throw new Error("请在resource上声明modelPath:string[]");
             this.props.resource.get();
             this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
         }
@@ -157,16 +191,16 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
             columnDefs:columnDefs,
             context:{
                 getSelected:()=>this.gridApi.getSelectedRows(),
-                dispatch:this.props.dispatch,
-                rowActions
+                dispatch:this.props.dispatch
             },
         });
         if(this.props.resource) {
+            //todo: server side filtering
             if (this.props.serverSideFilter) {
                 gridOptions['rowModelType'] = 'virtual';
                 gridOptions['datasource'] = {
                     getRows: (params: IGetRowsParams)=> {
-                        let data = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                        let data = getModel(this.props.storeState, this.props.resource.modelPath);
                         if (data.length < params.endRow) {
                             const resource = this.props.resource;
                             resource.filter({
@@ -176,7 +210,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                                 }
                             });
                             resource.get().then(()=> {
-                                let data = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                                let data = getModel(this.props.storeState, this.props.resource.modelPath);
                                 params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
                             });
                         }
@@ -185,7 +219,7 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
                     }
                 };
             } else
-                gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+                gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
         }
         this.setState({
             staticActions,
@@ -197,49 +231,72 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
         else super.setState(P,c);
     }
     isUnmounting=false;
-    componentWillReceiveProps(newProps:GridProp<T>){
+    componentWillReceiveProps(newProps:GridProps<T>){
         if(newProps.schema!==this.props.schema)
-            this.parseSchema(this.props.schema).then((parsed)=>{
-                this.setState({
-                    parsedSchema:parsed
-                })
+            this.parseSchema(newProps.schema).then((parsed)=>{
+                this.onReady(parsed)
             });
     }
     parseSchema(schema:GridFieldSchema[]):Promise<AbstractColDef[]>{
         return Promise.all(schema.map(column=>{
-            let parseField:(options:any)=>AbstractColDef = (options)=>{
-                let colDef={
-                    field:column.key,
-                    headerName:column.label,
-                    cellRenderer:column.cellRenderer,
-                    cellRendererParams:column.cellRendererParams
-                };
+            let syncParseField:(options:any,children?)=>AbstractColDef = (options,children?)=>{
+                let colDef=Object.assign({
+                    headerName:column.label
+                },column);
                 switch (column.type){
                     case "select":
-                            colDef['cellRendererFramework'] = this.state.themeRenderer.SelectFieldRenderer(options);
-                            colDef['options'] = column.options;
-                            colDef['filterFramework'] = EnumFilter;
-                    break;
-                case "date":
-                case "datetime-local":
-                    let method;
-                    if(column.type === "date")
-                        method = "toLocaleDateString";
-                    else
-                        method = "toLocaleString";
-                        colDef['cellRenderer']= params=>{
-                            return (params.value!==null&&params.value!==undefined)?new Date(params.value)[method]('zh-cn'): ""
+                        colDef['valueGetter']= function enumValueGetter({colDef,data}){
+                            function getValueByName(entryValue){
+                                const i = options.findIndex(x=>x.value==entryValue);
+                                if(i<0) return null;
+                                else return options[i].name;
+                            }
+                            const value = data[colDef.key];
+                            if (value instanceof Array)
+                                return value.map(getValueByName).filter(null);
+                            else
+                                return getValueByName(value)
+                        };
+                        colDef['cellRendererFramework'] = this.state.themeRenderer.SelectFieldRenderer(options);
+                        colDef['options'] = column.options;
+                        colDef['filterFramework'] = EnumFilter;
+                        break;
+                    case "date":
+                    case "datetime-local":
+                        let formatter:Intl.DateTimeFormat;
+                        if(column.type === "date")
+                            formatter = formatDate;
+                        else
+                            formatter = formatDateTime;
+                        colDef['valueGetter']= ({colDef,data})=>{
+                            return (data[colDef.key])?formatter.format(new Date(data[colDef.key])): ""
                         };
                         colDef['filterFramework'] = DateFilter;
-                    break;
+                        break;
+                    case "number":
+                        colDef['valueGetter'] = ({colDef,data})=>formatNumber.format(data[colDef.key]);
+                        break;
+                    case "checkbox":
+                        colDef['valueGetter'] = ({colDef,data})=>data[colDef.key]?"是":"否";
+                        break;
+                    case "group":
+                        colDef['children'] = children;
+                        colDef['marryChildren'] = true;
+                        break;
+                    default:
+                        colDef['field'] = column.key;
                 }
                 return colDef;
             };
             if (column.options && typeof column.options === 'function') {
                 const asyncOptions = column.options as AsyncOptions;
-                return asyncOptions().then(parseField);
+                return asyncOptions().then(syncParseField);
+            } else if(column.type==='group' && column.children){
+                return this.parseSchema(column.children).then(children=>{
+                    return syncParseField(column.options,children)
+                })
             } else
-                return Promise.resolve(parseField(column.options))
+                return Promise.resolve(syncParseField(column.options))
         }))
     }
     getActions(){
@@ -278,11 +335,13 @@ export class Grid<T> extends Component<GridProp<T>,GridState>{
     render(){
         let {staticActions,gridOptions} = this.state;
         if(!this.props.serverSideFilter && this.props.resource)
-            gridOptions['rowData'] = getModel(this.props.store, this.props.modelPath || this.props.resource['modelPath']);
+            gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
         else if(this.props.data)
             gridOptions['rowData'] = this.props.data;
         let GridRenderer = this.state.themeRenderer.GridRenderer;
         return <GridRenderer
+            noSearch={this.props.noSearch}
+            noSelect={this.props.noSelect}
             actions={staticActions}
             onSelectAll={()=>{
                         this.state.selectAll?this.gridApi.deselectAll():this.gridApi.selectAll();
