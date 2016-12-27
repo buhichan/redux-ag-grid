@@ -7,16 +7,15 @@ import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
 import {AgGridReact} from "ag-grid-react"
-import {AbstractColDef,ColGroupDef,ColDef,GridApi,ColumnApi} from "ag-grid";
+import {AbstractColDef,ColDef,GridApi,ColumnApi} from "ag-grid";
 import {RestfulResource} from "./RestfulResource"
 let {connect} =require("react-redux");
-import {deepGetState} from "./Utils";
+import {deepGetState, deepGet} from "./Utils";
 import {EnumFilter, DateFilter} from "./GridFilters";
 import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
-import Dispatch = Redux.Dispatch;
 import {currentTheme, ITheme} from "./themes"
 import "./themes/Bootstrap"
-import SyntheticEvent = __React.SyntheticEvent;
+import {Map,List} from "immutable";
 
 export interface GridFilter{
     quickFilterText?:string,
@@ -84,15 +83,15 @@ export interface StaticAction<T> extends BaseActionDef<T> {
 export interface GridProps<T>{
     gridName?:string,
     gridApi?:(gridApi:GridApi)=>void,
-    storeState?:Immutable.Map<any,any>,
+    storeState?:Map<any,any>,
     resource?:RestfulResource<T,any>,
     schema?:GridFieldSchema[],
     actions?:(InstanceAction<T>|StaticAction<T>|string)[],
     gridOptions?:any,
-    dispatch?:Dispatch<any>
+    dispatch?:any,
     height?:number,
     serverSideFilter?:boolean,
-    data?:T[] | Immutable.List<T>
+    data?:T[] | List<T>
     noSearch?:boolean
     noSelect?:boolean
 }
@@ -102,6 +101,12 @@ function getModel(store,modelPath){
     if(data && data.toArray)
         data = data.toArray();
     return data;
+}
+
+function getValue(model,field){
+    if(/\.|\[|\]/.test(field))
+        return deepGet(model,field);
+    else return model[field]
 }
 
 const formatNumber= new Intl.NumberFormat([],{
@@ -141,7 +146,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     if(this.props.gridApi)
                         this.props.gridApi(this.gridApi);
                 },
-                onColumnEverythingChanged:()=>this.gridApi&&this.gridApi.sizeColumnsToFit(),
+                onColumnEverythingChanged:()=>window.innerWidth>=480&&this.gridApi&&this.gridApi.sizeColumnsToFit(),
                 rowSelection:"multiple",
                 enableSorting:"true",
                 enableFilter:"true",
@@ -243,6 +248,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 let colDef=Object.assign({
                     headerName:column.label
                 },column);
+                //todo deep key not works with select/date
                 switch (column.type){
                     case "select":
                         colDef['valueGetter']= function enumValueGetter({colDef,data}){
@@ -251,14 +257,14 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                                 if(i<0) return null;
                                 else return options[i].name;
                             }
-                            const value = data[colDef.key];
+                            const value = getValue(data,colDef.key);
                             if (value instanceof Array)
                                 return value.map(getValueByName).filter(null);
                             else
                                 return getValueByName(value)
                         };
                         colDef['cellRendererFramework'] = this.state.themeRenderer.SelectFieldRenderer(options);
-                        colDef['options'] = column.options;
+                        colDef['options'] = options;
                         colDef['filterFramework'] = EnumFilter;
                         break;
                     case "date":
@@ -269,22 +275,23 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                         else
                             formatter = formatDateTime;
                         colDef['valueGetter']= ({colDef,data})=>{
-                            return (data[colDef.key])?formatter.format(new Date(data[colDef.key])): ""
+                            const v = getValue(data,colDef.key);
+                            return v?formatter.format(new Date(v)): ""
                         };
                         colDef['filterFramework'] = DateFilter;
                         break;
                     case "number":
-                        colDef['valueGetter'] = ({colDef,data})=>formatNumber.format(data[colDef.key]);
+                        colDef['valueGetter'] = ({colDef,data})=>formatNumber.format(getValue(data,colDef.key));
                         break;
                     case "checkbox":
-                        colDef['valueGetter'] = ({colDef,data})=>data[colDef.key]?"是":"否";
+                        colDef['valueGetter'] = ({colDef,data})=>getValue(data,colDef.key)?"是":"否";
                         break;
                     case "group":
                         colDef['children'] = children;
                         colDef['marryChildren'] = true;
                         break;
                     default:
-                        colDef['field'] = column.key;
+                        colDef['field']= column.key && column.key.replace(/\[(\d+)\]/g,".$1");
                 }
                 return colDef;
             };

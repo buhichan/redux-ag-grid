@@ -1,11 +1,13 @@
+/// <reference types="immutable" />
+/// <reference types="react" />
 import "../node_modules/ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
 import { AbstractColDef, ColDef, GridApi, ColumnApi } from "ag-grid";
 import { RestfulResource } from "./RestfulResource";
 import { ActionInstance, BaseActionDef } from "./ActionClassFactory";
-import Dispatch = Redux.Dispatch;
 import { ITheme } from "./themes";
 import "./themes/Bootstrap";
+import { Map, List } from "immutable";
 export interface GridFilter {
     quickFilterText?: string;
     pagination?: {
@@ -52,15 +54,15 @@ export interface StaticAction<T> extends BaseActionDef<T> {
 export interface GridProps<T> {
     gridName?: string;
     gridApi?: (gridApi: GridApi) => void;
-    storeState?: Immutable.Map<any, any>;
+    storeState?: Map<any, any>;
     resource?: RestfulResource<T, any>;
     schema?: GridFieldSchema[];
     actions?: (InstanceAction<T> | StaticAction<T> | string)[];
     gridOptions?: any;
-    dispatch?: Dispatch<any>;
+    dispatch?: any;
     height?: number;
     serverSideFilter?: boolean;
-    data?: T[] | Immutable.List<T>;
+    data?: T[] | List<T>;
     noSearch?: boolean;
     noSelect?: boolean;
 }

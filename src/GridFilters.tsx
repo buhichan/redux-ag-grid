@@ -4,9 +4,8 @@
 
 import {IDoesFilterPassParams, IFilterParams} from "ag-grid";
 
-import * as deepGet from "lodash/get";
 import * as React from "react"
-import FormEvent = __React.FormEvent;
+import {deepGet} from "./Utils";
 
 
 export class DateFilter extends React.Component<any,any>{
@@ -40,7 +39,7 @@ export class DateFilter extends React.Component<any,any>{
     }
 
     doesFilterPass(params: IDoesFilterPassParams): boolean {
-        let value = deepGet(params.data,this.params.colDef.field);
+        let value = deepGet(params.data,this.params.colDef['key']);
         if(value instanceof Date){
             return this.datePassed(value)
         }else if(typeof value === 'number'){
@@ -94,8 +93,8 @@ export class EnumFilter extends React.Component<any,any>{
     }
 
     doesFilterPass(params: IDoesFilterPassParams): boolean {
+        let value = deepGet(params.data,this.params.colDef['key']);
         return this.selected.some(selectedOption=>{
-            let value = deepGet(params.data,this.params.colDef.field);
             if(value instanceof Array)
                 return value.indexOf(selectedOption)>=0;
             else

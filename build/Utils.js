@@ -1,7 +1,7 @@
+"use strict";
 /**
  * Created by YS on 2016/11/4.
  */
-"use strict";
 function getImmuOrPOJO(target, key) {
     return (typeof target.get === 'function') ?
         target.get(key) : target[key];
@@ -16,6 +16,19 @@ function setImmuOrPOJO(target, data, key) {
     }
 }
 exports.setImmuOrPOJO = setImmuOrPOJO;
+function deepGet(obj, path) {
+    var pathAsArray = path.split(/\.|\[|\]/g);
+    var result = obj;
+    for (var i = 0; i < pathAsArray.length; i++) {
+        if (pathAsArray[i] !== "") {
+            result = result[pathAsArray[i]];
+            if (result === null || result === undefined)
+                return result;
+        }
+    }
+    return result;
+}
+exports.deepGet = deepGet;
 function deepGetState(rootState) {
     var keys = [];
     for (var _i = 1; _i < arguments.length; _i++) {

@@ -11,11 +11,9 @@
     "noImplicitAny": false,
     "jsx": "react",
     "outDir":"./build",
-    "rootDir":"./src"
+    "rootDir":"./src",
+    "lib":["es6","scripthost","dom","es2016.array.include","es2015.promise"]
   },
-  "include":[
-    "src/**/*",
-    "typings/**/*"
-  ],
-  "exclude": ["node_modules","example"]
+  "include": ["src"],
+  "exclude": ["build","node_modules"]
 }

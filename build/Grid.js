@@ -33,13 +33,13 @@ var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
 require("./themes/Bootstrap");
-var formatDate = new Intl.DateTimeFormat(['zh-cn'], {
+var formatDate = new Intl.DateTimeFormat(['zh-CN'], {
     hour12: false,
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
 });
-var formatDateTime = new Intl.DateTimeFormat(['zh-cn'], {
+var formatDateTime = new Intl.DateTimeFormat(['zh-CN'], {
     hour12: false,
     year: "numeric",
     month: "2-digit",
@@ -54,16 +54,21 @@ function getModel(store, modelPath) {
         data = data.toArray();
     return data;
 }
+function getValue(model, field) {
+    if (/\.|\[|\]/.test(field))
+        return Utils_1.deepGet(model, field);
+    else
+        return model[field];
+}
 var formatNumber = new Intl.NumberFormat([], {
     currency: "CNY"
 });
 var Grid = (function (_super) {
     __extends(Grid, _super);
     function Grid(props) {
-        var _this = this;
-        _super.call(this, props);
-        this.isUnmounting = false;
-        this.state = {
+        var _this = _super.call(this, props) || this;
+        _this.isUnmounting = false;
+        _this.state = {
             quickFilterText: '',
             gridOptions: {
                 colDef: [],
@@ -77,7 +82,7 @@ var Grid = (function (_super) {
                     if (_this.props.gridApi)
                         _this.props.gridApi(_this.gridApi);
                 },
-                onColumnEverythingChanged: function () { return _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
+                onColumnEverythingChanged: function () { return window.innerWidth >= 480 && _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
                 rowSelection: "multiple",
                 enableSorting: "true",
                 enableFilter: "true",
@@ -87,7 +92,8 @@ var Grid = (function (_super) {
             selectAll: false,
             staticActions: []
         };
-        Object.assign(this.state.gridOptions, props.gridOptions);
+        Object.assign(_this.state.gridOptions, props.gridOptions);
+        return _this;
     }
     Grid.prototype.shouldComponentUpdate = function (nextProps, nextState) {
         if (this.props.schema !== nextProps.schema ||
@@ -197,6 +203,7 @@ var Grid = (function (_super) {
                 var colDef = Object.assign({
                     headerName: column.label
                 }, column);
+                //todo deep key not works with select/date
                 switch (column.type) {
                     case "select":
                         colDef['valueGetter'] = function enumValueGetter(_a) {
@@ -208,14 +215,14 @@ var Grid = (function (_super) {
                                 else
                                     return options[i].name;
                             }
-                            var value = data[colDef.key];
+                            var value = getValue(data, colDef.key);
                             if (value instanceof Array)
                                 return value.map(getValueByName).filter(null);
                             else
                                 return getValueByName(value);
                         };
                         colDef['cellRendererFramework'] = _this.state.themeRenderer.SelectFieldRenderer(options);
-                        colDef['options'] = column.options;
+                        colDef['options'] = options;
                         colDef['filterFramework'] = GridFilters_1.EnumFilter;
                         break;
                     case "date":
@@ -227,20 +234,21 @@ var Grid = (function (_super) {
                             formatter_1 = formatDateTime;
                         colDef['valueGetter'] = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
-                            return (data[colDef.key]) ? formatter_1.format(new Date(data[colDef.key])) : "";
+                            var v = getValue(data, colDef.key);
+                            return v ? formatter_1.format(new Date(v)) : "";
                         };
                         colDef['filterFramework'] = GridFilters_1.DateFilter;
                         break;
                     case "number":
                         colDef['valueGetter'] = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
-                            return formatNumber.format(data[colDef.key]);
+                            return formatNumber.format(getValue(data, colDef.key));
                         };
                         break;
                     case "checkbox":
                         colDef['valueGetter'] = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
-                            return data[colDef.key] ? "是" : "否";
+                            return getValue(data, colDef.key) ? "是" : "否";
                         };
                         break;
                     case "group":
@@ -248,7 +256,7 @@ var Grid = (function (_super) {
                         colDef['marryChildren'] = true;
                         break;
                     default:
-                        colDef['field'] = column.key;
+                        colDef['field'] = column.key && column.key.replace(/\[(\d+)\]/g, ".$1");
                 }
                 return colDef;
             };
@@ -309,18 +317,17 @@ var Grid = (function (_super) {
         else if (this.props.data)
             gridOptions['rowData'] = this.props.data;
         var GridRenderer = this.state.themeRenderer.GridRenderer;
-        return React.createElement(GridRenderer, {noSearch: this.props.noSearch, noSelect: this.props.noSelect, actions: staticActions, onSelectAll: function () {
-            _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();
-            _this.state.selectAll = !_this.state.selectAll;
-        }, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height}, 
-            React.createElement(ag_grid_react_1.AgGridReact, __assign({}, gridOptions))
-        );
+        return React.createElement(GridRenderer, { noSearch: this.props.noSearch, noSelect: this.props.noSelect, actions: staticActions, onSelectAll: function () {
+                _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();
+                _this.state.selectAll = !_this.state.selectAll;
+            }, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height },
+            React.createElement(ag_grid_react_1.AgGridReact, __assign({}, gridOptions)));
     };
-    Grid = __decorate([
-        connect(function (storeState) { return ({ storeState: storeState }); }), 
-        __metadata('design:paramtypes', [Object])
-    ], Grid);
     return Grid;
 }(react_1.Component));
+Grid = __decorate([
+    connect(function (storeState) { return ({ storeState: storeState }); }),
+    __metadata("design:paramtypes", [Object])
+], Grid);
 exports.Grid = Grid;
 //# sourceMappingURL=Grid.js.map

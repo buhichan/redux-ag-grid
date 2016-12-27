@@ -6,8 +6,8 @@ var ActionClassFactory_1 = require("./ActionClassFactory");
 var Utils_1 = require("./Utils");
 var RestfulResource = (function () {
     function RestfulResource(_a) {
-        var _this = this;
         var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, key = _a.key, mapFilterToQuery = _a.mapFilterToQuery, methods = _a.methods, apiType = _a.apiType, fetch = _a.fetch, mapResToData = _a.mapResToData, actions = _a.actions, _b = _a.cacheTime, cacheTime = _b === void 0 ? 1 : _b;
+        var _this = this;
         this.config = {};
         this.isCustomFilterPresent = false;
         this._query = {};

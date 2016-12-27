@@ -1,14 +1,14 @@
+/// <reference types="react" />
 import { Options } from "../Grid";
 import { GridApi } from "ag-grid";
 import * as React from "react";
 import { ActionInstance } from "../ActionClassFactory";
-import Dispatch = Redux.Dispatch;
 /**
  * Created by YS on 2016/11/16.
  */
 export declare type GridRendererProps = {
     onSelectAll: () => void;
-    dispatch: Dispatch<any>;
+    dispatch: (action: any) => void;
     gridApi: GridApi;
     actions: ActionInstance<any>[];
     height: number;

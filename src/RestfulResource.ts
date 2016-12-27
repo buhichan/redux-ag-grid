@@ -5,7 +5,6 @@
 import {RestfulActionClassFactory, RestfulActionDef, ActionInstance} from "./ActionClassFactory"
 import {GridFilter} from "./Grid"
 import {keyValueToQueryParams} from "./Utils";
-import {Dispatch} from "redux";
 
 /**
  * Created by YS on 2016/11/4.
@@ -78,7 +77,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     }:{
         url:string,
         modelPath:string[],
-        dispatch:Dispatch<any>,
+        dispatch:(action:any)=>void,
         key?,
         mapFilterToQuery?:(filter:GridFilter)=>({[id:string]:any}),
         methods?:Resource<Model>,
@@ -313,8 +312,8 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             return model;
         },this.errorHandler.bind(this))
     }
-    errorHandler(e){
-        throw e;
+    errorHandler(e:Response){
+        throw e
     }
     getQueryString(){
         return keyValueToQueryParams(Object.assign({},this._filter,this._query));

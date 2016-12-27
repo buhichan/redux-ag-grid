@@ -53,9 +53,9 @@ var config = {
     },
     externals:{
         react:"React",
-        "react-dom":"ReactDOM"
+        "react-dom":"ReactDOM",
+        "lodash":true
     }
-
 };
 
 if(ENV === "dev"){

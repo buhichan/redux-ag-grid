@@ -1,3 +1,4 @@
+import {isNullOrUndefined} from "util";
 /**
  * Created by YS on 2016/11/4.
  */
@@ -14,6 +15,19 @@ export function setImmuOrPOJO(target,data,key){
         target[key]=data;
         return target
     }
+}
+
+export function deepGet(obj:any,path:string){
+    const pathAsArray = path.split(/\.|\[|\]/g);
+    let result=obj;
+    for(let i=0;i<pathAsArray.length;i++){
+        if(pathAsArray[i]!==""){
+            result = result[pathAsArray[i]];
+            if(result === null || result === undefined)
+                return result;
+        }
+    }
+    return result;
 }
 
 export function deepGetState(rootState,...keys){

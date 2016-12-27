@@ -7,20 +7,21 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var deepGet = require("lodash/get");
 var React = require("react");
+var Utils_1 = require("./Utils");
 var DateFilter = (function (_super) {
     __extends(DateFilter, _super);
     function DateFilter(params) {
-        _super.call(this);
-        this.params = params;
+        var _this = _super.call(this) || this;
+        _this.params = params;
+        return _this;
     }
     DateFilter.prototype.render = function () {
         var _this = this;
-        return React.createElement("div", {style: { "margin": "4px" }}, 
-            React.createElement("input", {type: "date", ref: function (ref) { return _this.input = ref; }, value: this.fromAsString, onChange: function (e) { return _this.onChange(e.target.value); }}), 
-            "-", 
-            React.createElement("input", {type: "date", value: this.fromAsString, onChange: function (e) { return _this.onChange(undefined, e.target.value); }}));
+        return React.createElement("div", { style: { "margin": "4px" } },
+            React.createElement("input", { type: "date", ref: function (ref) { return _this.input = ref; }, value: this.fromAsString, onChange: function (e) { return _this.onChange(e.target.value); } }),
+            "-",
+            React.createElement("input", { type: "date", value: this.fromAsString, onChange: function (e) { return _this.onChange(undefined, e.target.value); } }));
     };
     DateFilter.prototype.isFilterActive = function () {
         return this.from instanceof Date && !isNaN(this.from.getTime()) || this.to instanceof Date && !isNaN(this.to.getTime());
@@ -32,7 +33,7 @@ var DateFilter = (function (_super) {
         return date >= this.from || !(this.from instanceof Date) && date <= this.to || !(this.to instanceof Date);
     };
     DateFilter.prototype.doesFilterPass = function (params) {
-        var value = deepGet(params.data, this.params.colDef.field);
+        var value = Utils_1.deepGet(params.data, this.params.colDef['key']);
         if (value instanceof Date) {
             return this.datePassed(value);
         }
@@ -70,23 +71,23 @@ exports.DateFilter = DateFilter;
 var EnumFilter = (function (_super) {
     __extends(EnumFilter, _super);
     function EnumFilter(params) {
-        _super.call(this);
-        this.options = [];
-        this.selected = [];
-        this.params = params;
-        this.options = params.colDef.options;
+        var _this = _super.call(this) || this;
+        _this.options = [];
+        _this.selected = [];
+        _this.params = params;
+        _this.options = params.colDef.options;
+        return _this;
     }
     EnumFilter.prototype.render = function () {
         var _this = this;
-        return React.createElement("select", {style: { "margin": "4px" }, ref: function (ref) { return _this.select = ref; }, multiple: true, onChange: function () { return _this.onChange(); }}, this.options.map(function (option, i) { return React.createElement("option", {key: i, value: option.value}, option.name); }));
+        return React.createElement("select", { style: { "margin": "4px" }, ref: function (ref) { return _this.select = ref; }, multiple: true, onChange: function () { return _this.onChange(); } }, this.options.map(function (option, i) { return React.createElement("option", { key: i, value: option.value }, option.name); }));
     };
     EnumFilter.prototype.isFilterActive = function () {
         return this.selected.length > 0;
     };
     EnumFilter.prototype.doesFilterPass = function (params) {
-        var _this = this;
+        var value = Utils_1.deepGet(params.data, this.params.colDef['key']);
         return this.selected.some(function (selectedOption) {
-            var value = deepGet(params.data, _this.params.colDef.field);
             if (value instanceof Array)
                 return value.indexOf(selectedOption) >= 0;
             else

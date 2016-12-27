@@ -1,5 +1,5 @@
 {
-  "name": "ag-grid-react-preset",
+  "name": "redux-ag-grid",
   "version": "1.0.0",
   "description": "a grid",
   "main": "index.js",
@@ -30,6 +30,14 @@
     "immutable": "^3.8.1"
   },
   "devDependencies": {
+    "@types/immutable": "^3.8.6",
+    "@types/lodash": "^4.14.44",
+    "@types/node": "^6.0.53",
+    "@types/react": "^0.14.55",
+    "@types/react-dom": "^0.14.19",
+    "@types/react-redux": "^4.4.35",
+    "@types/redux-form": "^4.0.31",
+    "@types/whatwg-fetch": "0.0.33",
     "autoprefixer": "~6.4.0",
     "babel": "~6.5.2",
     "babel-core": "~6.14.0",

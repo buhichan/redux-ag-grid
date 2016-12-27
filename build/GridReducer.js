@@ -48,11 +48,11 @@ function GridReducer(rootState, action) {
             index = list.findIndex(function (entry) { return payload.key(entry) === payload.data.id; });
             if (index >= 0) {
                 return Utils_1.deepSetState.apply(void 0, [rootState, list.update(index, function (item) {
-                    var AllEqual = Object.keys(payload.data.changes).every(function (key) {
-                        return (payload.data.changes[key] === item[key]);
-                    });
-                    return AllEqual ? item : Object.assign({}, item, payload.data.changes);
-                })].concat(payload.modelPath));
+                        var AllEqual = Object.keys(payload.data.changes).every(function (key) {
+                            return (payload.data.changes[key] === item[key]);
+                        });
+                        return AllEqual ? item : Object.assign({}, item, payload.data.changes);
+                    })].concat(payload.modelPath));
             }
             else
                 return rootState;

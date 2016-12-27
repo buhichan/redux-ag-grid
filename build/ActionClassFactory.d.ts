@@ -1,4 +1,4 @@
-import Dispatch = Redux.Dispatch;
+/// <reference types="whatwg-fetch" />
 export interface RestfulActionDef<T> extends BaseActionDef<T> {
     path?: string;
     method?: string;
@@ -21,4 +21,4 @@ export interface BaseActionDef<T> {
 }
 export declare function RestfulActionClassFactory<T>(url: string): (actionName: string, actionDef: RestfulActionDef<T>, gridName: string, config: RequestInit, getQuery: () => {
     [key: string]: string;
-}, idGetter: any, modelPath: string[], fetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>, mapResToData: any, dispatch: Dispatch<any>) => ActionInstance<T>;
+}, idGetter: any, modelPath: string[], fetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>, mapResToData: any, dispatch: (action: any) => void) => ActionInstance<T>;

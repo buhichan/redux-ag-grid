@@ -1,6 +1,6 @@
+/// <reference types="whatwg-fetch" />
 import { RestfulActionDef, ActionInstance } from "./ActionClassFactory";
 import { GridFilter } from "./Grid";
-import { Dispatch } from "redux";
 export declare type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null;
 export interface Resource<T> {
     get(): Promise<T[]>;
@@ -42,7 +42,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     constructor({url, modelPath, dispatch, key, mapFilterToQuery, methods, apiType, fetch, mapResToData, actions, cacheTime}: {
         url: string;
         modelPath: string[];
-        dispatch: Dispatch<any>;
+        dispatch: (action: any) => void;
         key?;
         mapFilterToQuery?: (filter: GridFilter) => ({
             [id: string]: any;
@@ -67,7 +67,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     delete(data: any): Promise<boolean>;
     put(data: any): Promise<Model>;
     post(data: any): Promise<Model>;
-    errorHandler(e: any): void;
+    errorHandler(e: Response): void;
     getQueryString(): string;
     filter(_filter: GridFilter): this;
     query(query: any): this;

@@ -4,7 +4,6 @@
 "use strict";
 
 import {keyValueToQueryParams} from "./Utils"
-import Dispatch = Redux.Dispatch;
 
 export interface RestfulActionDef<T> extends BaseActionDef<T>{
     path?:string,
@@ -40,7 +39,7 @@ export function RestfulActionClassFactory<T>(url:string){
         modelPath:string[],
         fetch:typeof window.fetch,
         mapResToData,
-        dispatch:Dispatch<any>
+        dispatch:(action:any)=>void
     ) {
         let RequestConfig = Object.assign({
             method:actionDef.method||"POST"
