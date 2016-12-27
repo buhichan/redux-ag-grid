@@ -8,7 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
  * Created by YS on 2016/11/16.
  */
 var React = require("react");
-require("../../node_modules/ag-grid/dist/styles/theme-bootstrap.css");
+require("ag-grid/dist/styles/theme-bootstrap.css");
 var index_1 = require("./index");
 var Theme = {
     SelectFieldRenderer: function (options) { return function SelectFieldRenderer(props) {

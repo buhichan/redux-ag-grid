@@ -1,6 +1,6 @@
 /// <reference types="immutable" />
 /// <reference types="react" />
-import "../node_modules/ag-grid/dist/styles/ag-grid.css";
+import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
 import { AbstractColDef, ColDef, GridApi, ColumnApi } from "ag-grid";
 import { RestfulResource } from "./RestfulResource";

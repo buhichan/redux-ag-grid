@@ -2,7 +2,7 @@
  * Created by YS on 2016/9/24.
  */
 "use strict";
-import "../node_modules/ag-grid/dist/styles/ag-grid.css"
+import "ag-grid/dist/styles/ag-grid.css"
 import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"

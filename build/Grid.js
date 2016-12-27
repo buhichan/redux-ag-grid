@@ -24,7 +24,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-require("../node_modules/ag-grid/dist/styles/ag-grid.css");
+require("ag-grid/dist/styles/ag-grid.css");
 var react_1 = require("react");
 var React = require("react");
 var ag_grid_react_1 = require("ag-grid-react");

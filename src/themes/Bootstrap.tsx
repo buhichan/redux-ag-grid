@@ -2,7 +2,7 @@
  * Created by YS on 2016/11/16.
  */
 import * as React from "react"
-import "../../node_modules/ag-grid/dist/styles/theme-bootstrap.css"
+import "ag-grid/dist/styles/theme-bootstrap.css"
 import {ITheme, setTheme, GridRendererProps} from "./index";
 
 const Theme:ITheme = {
