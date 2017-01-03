@@ -2,7 +2,7 @@
  * Created by YS on 2016/9/24.
  */
 "use strict";
-require("./Grid.css");
+require("../Grid.css");
 var Grid_1 = require("./Grid");
 exports.ReduxAgGrid = Grid_1.Grid;
 exports.setStore = Grid_1.setStore;

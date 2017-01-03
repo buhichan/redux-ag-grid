@@ -14,7 +14,7 @@ import {EnumFilter, DateFilter} from "./GridFilters";
 import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import {currentTheme, ITheme} from "./themes"
 import "./themes/Bootstrap"
-import {Map,List} from "immutable";
+import {List} from "immutable";
 import {Store} from "redux"
 
 export interface GridFilter{
