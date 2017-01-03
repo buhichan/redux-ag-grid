@@ -9,13 +9,13 @@ import {IGetRowsParams} from "ag-grid"
 import {AgGridReact} from "ag-grid-react"
 import {AbstractColDef,ColDef,GridApi,ColumnApi} from "ag-grid";
 import {RestfulResource} from "./RestfulResource"
-let {connect} =require("react-redux");
 import {deepGetState, deepGet} from "./Utils";
 import {EnumFilter, DateFilter} from "./GridFilters";
 import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import {currentTheme, ITheme} from "./themes"
 import "./themes/Bootstrap"
 import {Map,List} from "immutable";
+import {Store} from "redux"
 
 export interface GridFilter{
     quickFilterText?:string,
@@ -68,6 +68,7 @@ export interface GridState<T>{
     gridOptions?:any,
     themeRenderer:ITheme,
     selectAll?:boolean,
+    models:List<T>,
     staticActions:ActionInstance<T>[]
 }
 
@@ -83,7 +84,6 @@ export interface StaticAction<T> extends BaseActionDef<T> {
 export interface GridProps<T>{
     gridName?:string,
     gridApi?:(gridApi:GridApi)=>void,
-    storeState?:Map<any,any>,
     resource?:RestfulResource<T,any>,
     schema?:GridFieldSchema[],
     actions?:(InstanceAction<T>|StaticAction<T>|string)[],
@@ -96,13 +96,6 @@ export interface GridProps<T>{
     noSelect?:boolean
 }
 
-function getModel(store,modelPath){
-    let data = deepGetState(store,...modelPath);
-    if(data && data.toArray)
-        data = data.toArray();
-    return data;
-}
-
 function getValue(model,field){
     if(/\.|\[|\]/.test(field))
         return deepGet(model,field);
@@ -113,9 +106,12 @@ const formatNumber= new Intl.NumberFormat([],{
     currency:"CNY"
 });
 
-@connect(
-    storeState=>({storeState})
-)
+let Store:Store<any>;
+
+export function setStore(store){
+    Store = store;
+}
+
 export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
     gridApi:GridApi;
     columnApi:ColumnApi;
@@ -125,15 +121,16 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
             this.state.gridOptions.colDef !== nextState.gridOptions.colDef ||
             this.state.staticActions !== nextState.staticActions
         ) return true;
-        if(this.props.resource) //resource mode
-            return getModel(this.props.storeState, this.props.resource.modelPath) !== getModel(nextProps.storeState,nextProps.resource.modelPath);
-        else //data mode
+        if(this.props.resource) { //resource mode
+            return nextState.models !== this.state.models;
+        }else //data mode
             return this.props.data !== nextProps.data;
     }
-    constructor(props){
+    constructor(props,context){
         super(props);
         this.state = {
             quickFilterText:'',
+            models:List() as List<T>,
             gridOptions:{
                 colDef:[],
                 suppressNoRowsOverlay:true,
@@ -156,7 +153,26 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
             selectAll:false,
             staticActions:[]
         };
-        Object.assign(this.state.gridOptions,props.gridOptions)
+        Object.assign(this.state.gridOptions,props.gridOptions);
+    }
+    componentDidMount(){
+        if(this.props.resource)
+            this.unsubscriber = Store.subscribe(this.handleStoreChange.bind(this));
+    }
+    handleStoreChange(){
+        if(this.props.resource) {
+            const models = deepGetState(Store.getState(), ...this.props.resource.modelPath);
+            this.setState({
+                models
+            })
+        }
+    }
+    unsubscriber;
+    componentWillUnmount(){
+        this.isUnmounting = true;
+        if(this.props.gridApi)
+            this.props.gridApi(null);
+        this.unsubscriber && this.unsubscriber();
     }
     componentWillMount(){
         if(!this.props.resource && !this.props.data) {
@@ -170,11 +186,6 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         this.parseSchema(this.props.schema).then((parsed)=> {
             this.onReady(parsed)
         });
-    }
-    componentWillUnmount(){
-        this.isUnmounting = true;
-        if(this.props.gridApi)
-            this.props.gridApi(null);
     }
     onReady(schema){
         let {staticActions,rowActions} = this.getActions();
@@ -205,7 +216,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 gridOptions['rowModelType'] = 'virtual';
                 gridOptions['datasource'] = {
                     getRows: (params: IGetRowsParams)=> {
-                        let data = getModel(this.props.storeState, this.props.resource.modelPath);
+                        let data = deepGetState(Store.getState(), ...this.props.resource.modelPath);
                         if (data.length < params.endRow) {
                             const resource = this.props.resource;
                             resource.filter({
@@ -215,7 +226,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                                 }
                             });
                             resource.get().then(()=> {
-                                let data = getModel(this.props.storeState, this.props.resource.modelPath);
+                                let data = deepGetState(Store.getState(), ...this.props.resource.modelPath);
                                 params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
                             });
                         }
@@ -224,7 +235,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     }
                 };
             } else
-                gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
+                gridOptions['rowData'] = deepGetState(Store.getState(), ...this.props.resource.modelPath);
         }
         this.setState({
             staticActions,
@@ -342,7 +353,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
     render(){
         let {staticActions,gridOptions} = this.state;
         if(!this.props.serverSideFilter && this.props.resource)
-            gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
+            gridOptions['rowData'] = this.state.models.toArray();
         else if(this.props.data)
             gridOptions['rowData'] = this.props.data;
         let GridRenderer = this.state.themeRenderer.GridRenderer;
@@ -362,3 +373,5 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         </GridRenderer>;
     }
 }
+
+const a = Grid as new()=>Grid<number>;

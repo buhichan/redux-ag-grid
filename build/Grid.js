@@ -15,24 +15,16 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
     }
     return t;
 };
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 require("ag-grid/dist/styles/ag-grid.css");
 var react_1 = require("react");
 var React = require("react");
 var ag_grid_react_1 = require("ag-grid-react");
-var connect = require("react-redux").connect;
 var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
 require("./themes/Bootstrap");
+var immutable_1 = require("immutable");
+var redux_1 = require("redux");
 var formatDate = new Intl.DateTimeFormat(['zh-CN'], {
     hour12: false,
     year: "numeric",
@@ -48,12 +40,6 @@ var formatDateTime = new Intl.DateTimeFormat(['zh-CN'], {
     minute: "2-digit",
     second: "2-digit"
 });
-function getModel(store, modelPath) {
-    var data = Utils_1.deepGetState.apply(void 0, [store].concat(modelPath));
-    if (data && data.toArray)
-        data = data.toArray();
-    return data;
-}
 function getValue(model, field) {
     if (/\.|\[|\]/.test(field))
         return Utils_1.deepGet(model, field);
@@ -63,13 +49,19 @@ function getValue(model, field) {
 var formatNumber = new Intl.NumberFormat([], {
     currency: "CNY"
 });
+var Store;
+function setStore(store) {
+    redux_1.Store = store;
+}
+exports.setStore = setStore;
 var Grid = (function (_super) {
     __extends(Grid, _super);
-    function Grid(props) {
+    function Grid(props, context) {
         var _this = _super.call(this, props) || this;
         _this.isUnmounting = false;
         _this.state = {
             quickFilterText: '',
+            models: immutable_1.List(),
             gridOptions: {
                 colDef: [],
                 suppressNoRowsOverlay: true,
@@ -101,10 +93,29 @@ var Grid = (function (_super) {
             this.state.gridOptions.colDef !== nextState.gridOptions.colDef ||
             this.state.staticActions !== nextState.staticActions)
             return true;
-        if (this.props.resource)
-            return getModel(this.props.storeState, this.props.resource.modelPath) !== getModel(nextProps.storeState, nextProps.resource.modelPath);
+        if (this.props.resource) {
+            return nextState.models !== this.state.models;
+        }
         else
             return this.props.data !== nextProps.data;
+    };
+    Grid.prototype.componentDidMount = function () {
+        if (this.props.resource)
+            this.unsubscriber = redux_1.Store.subscribe(this.handleStoreChange.bind(this));
+    };
+    Grid.prototype.handleStoreChange = function () {
+        if (this.props.resource) {
+            var models = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource.modelPath));
+            this.setState({
+                models: models
+            });
+        }
+    };
+    Grid.prototype.componentWillUnmount = function () {
+        this.isUnmounting = true;
+        if (this.props.gridApi)
+            this.props.gridApi(null);
+        this.unsubscriber && this.unsubscriber();
     };
     Grid.prototype.componentWillMount = function () {
         var _this = this;
@@ -120,11 +131,6 @@ var Grid = (function (_super) {
         this.parseSchema(this.props.schema).then(function (parsed) {
             _this.onReady(parsed);
         });
-    };
-    Grid.prototype.componentWillUnmount = function () {
-        this.isUnmounting = true;
-        if (this.props.gridApi)
-            this.props.gridApi(null);
     };
     Grid.prototype.onReady = function (schema) {
         var _this = this;
@@ -156,7 +162,7 @@ var Grid = (function (_super) {
                 gridOptions['rowModelType'] = 'virtual';
                 gridOptions['datasource'] = {
                     getRows: function (params) {
-                        var data = getModel(_this.props.storeState, _this.props.resource.modelPath);
+                        var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource.modelPath));
                         if (data.length < params.endRow) {
                             var resource = _this.props.resource;
                             resource.filter({
@@ -166,7 +172,7 @@ var Grid = (function (_super) {
                                 }
                             });
                             resource.get().then(function () {
-                                var data = getModel(_this.props.storeState, _this.props.resource.modelPath);
+                                var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource.modelPath));
                                 params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
                             });
                         }
@@ -176,7 +182,7 @@ var Grid = (function (_super) {
                 };
             }
             else
-                gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
+                gridOptions['rowData'] = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource.modelPath));
         }
         this.setState({
             staticActions: staticActions,
@@ -313,7 +319,7 @@ var Grid = (function (_super) {
         var _this = this;
         var _a = this.state, staticActions = _a.staticActions, gridOptions = _a.gridOptions;
         if (!this.props.serverSideFilter && this.props.resource)
-            gridOptions['rowData'] = getModel(this.props.storeState, this.props.resource.modelPath);
+            gridOptions['rowData'] = this.state.models.toArray();
         else if (this.props.data)
             gridOptions['rowData'] = this.props.data;
         var GridRenderer = this.state.themeRenderer.GridRenderer;
@@ -325,9 +331,6 @@ var Grid = (function (_super) {
     };
     return Grid;
 }(react_1.Component));
-Grid = __decorate([
-    connect(function (storeState) { return ({ storeState: storeState }); }),
-    __metadata("design:paramtypes", [Object])
-], Grid);
 exports.Grid = Grid;
+var a = Grid;
 //# sourceMappingURL=Grid.js.map

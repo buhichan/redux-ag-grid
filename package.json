@@ -2,7 +2,7 @@
   "name": "redux-ag-grid",
   "version": "1.1.0",
   "description": "a grid",
-  "main": "index.js",
+  "main": "build/index.js",
   "scripts": {
     "dev": "webpack-dev-server --devtool=source-map --host=0.0.0.0 --history-api-fallback --port=8086 --inline --progress",
     "build:dev": "webpack --bail --progress --profile",
@@ -25,7 +25,6 @@
     "bootstrap": "~3.3.7",
     "ag-grid": "^6.4.2",
     "ag-grid-react": "^6.4.0",
-    "react-redux": "^4.4.6",
     "whatwg-fetch": "^2.0.0",
     "immutable": "^3.8.1"
   },
@@ -51,6 +50,7 @@
     "path-is-absolute": "^1.0.0",
     "postcss-loader": "~0.11.1",
     "raw-loader": "~0.5.1",
+    "redux": "^3.6.0",
     "style-loader": "~0.13.1",
     "ts-loader": "^0.8.2",
     "typescript": "^2.0.3",
