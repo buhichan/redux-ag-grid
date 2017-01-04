@@ -28,6 +28,12 @@ export interface BaseActionDef<T>{
     enabled?:(model:T)=>boolean
 }
 
+type ActionCache = {
+    [action_url:string]:{
+        LastCachedTime:number,
+        cachedPromise:Promise<any>}
+};
+
 export function RestfulActionClassFactory<T>(url:string){
     return function Action(
         actionName:string,
@@ -45,7 +51,7 @@ export function RestfulActionClassFactory<T>(url:string){
             method:actionDef.method||"POST"
         },config);
         actionDef.params = actionDef.params || (()=>({}));
-        let ActionCacheMap = {};
+        let ActionCacheMap = {} as ActionCache;
 
         const action:ActionInstance<T> = function(data?) {
             let action_url = url+'/';
@@ -67,21 +73,20 @@ export function RestfulActionClassFactory<T>(url:string){
             if(actionDef.cacheTime) {
                 const cached = ActionCacheMap[action_url];
                 if(cached) {
-                    const {LastCachedTime, cachedValue} = cached;
+                    const {LastCachedTime, cachedPromise} = cached;
                     if (Date.now() - LastCachedTime < actionDef.cacheTime * 1000)
-                        promise = Promise.resolve(cachedValue);
+                        promise = cachedPromise;
                 }
             }
             if(!promise) {
                 promise = fetch(action_url, RequestConfig).then(res => res.json()).then(res => {
-                    const data = mapResToData(res, actionDef['key'] || actionName);
-                    if (actionDef.cacheTime)
-                        ActionCacheMap[action_url] = {
-                            cachedValue: data,
-                            LastCachedTime: Date.now()
-                        };
-                    return data;
+                    return mapResToData(res, actionDef['key'] || actionName);
                 });
+                if (actionDef.cacheTime)
+                    ActionCacheMap[action_url] = {
+                        cachedPromise: promise,
+                        LastCachedTime: Date.now()
+                    };
             }
             if(actionDef.then)
                 return promise.then(res=>{

@@ -31,21 +31,20 @@ function RestfulActionClassFactory(url) {
             if (actionDef.cacheTime) {
                 var cached = ActionCacheMap[action_url];
                 if (cached) {
-                    var LastCachedTime = cached.LastCachedTime, cachedValue = cached.cachedValue;
+                    var LastCachedTime = cached.LastCachedTime, cachedPromise = cached.cachedPromise;
                     if (Date.now() - LastCachedTime < actionDef.cacheTime * 1000)
-                        promise = Promise.resolve(cachedValue);
+                        promise = cachedPromise;
                 }
             }
             if (!promise) {
                 promise = fetch(action_url, RequestConfig).then(function (res) { return res.json(); }).then(function (res) {
-                    var data = mapResToData(res, actionDef['key'] || actionName);
-                    if (actionDef.cacheTime)
-                        ActionCacheMap[action_url] = {
-                            cachedValue: data,
-                            LastCachedTime: Date.now()
-                        };
-                    return data;
+                    return mapResToData(res, actionDef['key'] || actionName);
                 });
+                if (actionDef.cacheTime)
+                    ActionCacheMap[action_url] = {
+                        cachedPromise: promise,
+                        LastCachedTime: Date.now()
+                    };
             }
             if (actionDef.then)
                 return promise.then(function (res) {
