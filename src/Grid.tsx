@@ -130,7 +130,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         super(props);
         this.state = {
             quickFilterText:'',
-            models:List() as List<T>,
+            models: this.props.resource?deepGetState(Store.getState(), ...this.props.resource.modelPath) as List<T>:null,
             gridOptions:{
                 colDef:[],
                 suppressNoRowsOverlay:true,

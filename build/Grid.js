@@ -23,7 +23,6 @@ var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
 require("./themes/Bootstrap");
-var immutable_1 = require("immutable");
 var redux_1 = require("redux");
 var formatDate = new Intl.DateTimeFormat(['zh-CN'], {
     hour12: false,
@@ -61,7 +60,7 @@ var Grid = (function (_super) {
         _this.isUnmounting = false;
         _this.state = {
             quickFilterText: '',
-            models: immutable_1.List(),
+            models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource.modelPath)) : null,
             gridOptions: {
                 colDef: [],
                 suppressNoRowsOverlay: true,
