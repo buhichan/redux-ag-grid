@@ -1,7 +1,7 @@
 {
   "name": "redux-ag-grid",
-  "version": "1.1.2",
-  "description": "a grid",
+  "version": "1.0.0",
+  "description": "a react component on top of ag-grid, to use redux",
   "main": "index.js",
   "scripts": {
     "dev": "webpack-dev-server --devtool=source-map --host=0.0.0.0 --history-api-fallback --port=8086 --inline --progress",
@@ -11,13 +11,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@gitlab.ucloudadmin.com:buhi/ag-grid-react-preset.git"
+    "url": "git@github.com:buhichan/redux-ag-grid.git"
   },
   "keywords": [
     "grid",
     "table",
-    "reactjs",
-    "bootstrap"
+    "react",
+    "ag-grid"
   ],
   "peerDependencies": {
     "react": "^15.3.2",
