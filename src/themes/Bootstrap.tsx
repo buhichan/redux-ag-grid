@@ -21,7 +21,7 @@ const Theme:ITheme = {
         </div>
     },
     GridRenderer:(props:GridRendererProps)=>{
-        return <div className={"redux-ag-grid ag-bootstrap panel panel-default"}>
+        return <div className={"redux-ag-grid ag-bootstrap panel panel-default"} style={{height:"100%"}}>
             <div className="panel-heading clearfix">
                 {props.noSelect || <div className="pull-left">
                     <button className="btn btn-default" onClick={props.onSelectAll}>全选/取消</button>
@@ -34,7 +34,7 @@ const Theme:ITheme = {
                     }
                 </div>
             </div>
-            <div className="panel-body" style={{height:(props.height||600)+"px"}}>
+            <div className="panel-body" style={{height:(props.height?(props.height||600)+"px":"100%")}}>
                 {props.children}
             </div>
         </div>

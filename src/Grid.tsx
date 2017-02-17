@@ -132,10 +132,14 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
             quickFilterText:'',
             models: this.props.resource?deepGetState(Store.getState(), ...this.props.resource._modelPath) as List<T>:null,
             gridOptions:{
-                colDef:[],
+                columnDefs:[],
                 suppressNoRowsOverlay:true,
                 rowData:[],
                 paginationPageSize:20,
+                style:{
+                    height:"100%",
+                    width: "100%"
+                },
                 rowHeight:40,
                 onGridReady:params=>{
                     this.gridApi=params.api;

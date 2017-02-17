@@ -63,5 +63,7 @@ let resource = new RestfulResource({
 setStore(store);
 
 ReactDOM.render(
-    <ReduxAgGrid resource={resource as any} schema={schema} actions={actions}/>
+    (<div style={{height:"1000px"}} >
+        <ReduxAgGrid resource={resource as any} schema={schema} actions={actions} />
+    </div>)
     ,document.getElementById('root'));
