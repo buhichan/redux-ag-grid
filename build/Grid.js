@@ -60,7 +60,7 @@ var Grid = (function (_super) {
         _this.isUnmounting = false;
         _this.state = {
             quickFilterText: '',
-            models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource.modelPath)) : null,
+            models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath)) : null,
             gridOptions: {
                 colDef: [],
                 suppressNoRowsOverlay: true,
@@ -104,7 +104,7 @@ var Grid = (function (_super) {
     };
     Grid.prototype.handleStoreChange = function () {
         if (this.props.resource) {
-            var models = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource.modelPath));
+            var models = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource._modelPath));
             this.setState({
                 models: models
             });
@@ -122,10 +122,10 @@ var Grid = (function (_super) {
             throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
         }
         else if (this.props.resource) {
-            if (!this.props.resource.modelPath)
+            if (!this.props.resource._modelPath)
                 throw new Error("请在resource上声明modelPath:string[]");
             this.props.resource.get();
-            this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
+            this.props.resource['_gridName'] = this.props.gridName || ('grid' + Math.random());
         }
         this.parseSchema(this.props.schema).then(function (parsed) {
             _this.onReady(parsed);
@@ -161,7 +161,7 @@ var Grid = (function (_super) {
                 gridOptions['rowModelType'] = 'virtual';
                 gridOptions['datasource'] = {
                     getRows: function (params) {
-                        var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource.modelPath));
+                        var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath));
                         if (data.length < params.endRow) {
                             var resource = _this.props.resource;
                             resource.filter({
@@ -171,7 +171,7 @@ var Grid = (function (_super) {
                                 }
                             });
                             resource.get().then(function () {
-                                var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource.modelPath));
+                                var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath));
                                 params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
                             });
                         }
@@ -181,7 +181,7 @@ var Grid = (function (_super) {
                 };
             }
             else
-                gridOptions['rowData'] = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource.modelPath));
+                gridOptions['rowData'] = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource._modelPath));
         }
         this.setState({
             staticActions: staticActions,
@@ -227,7 +227,7 @@ var Grid = (function (_super) {
                                 return getValueByName(value);
                         };
                         colDef['cellRendererFramework'] = _this.state.themeRenderer.SelectFieldRenderer(options);
-                        colDef['options'] = options;
+                        colDef['_options'] = options;
                         colDef['filterFramework'] = GridFilters_1.EnumFilter;
                         break;
                     case "date":
@@ -292,11 +292,11 @@ var Grid = (function (_super) {
                     deleteAction['displayName'] = '删除';
                     rowActions.push(deleteAction);
                 }
-                else if (typeof action === 'string' && restResource.actions[action]) {
-                    if (restResource.actions[action].isStatic)
-                        staticActions.push(restResource.actions[action]);
+                else if (typeof action === 'string' && restResource._actions[action]) {
+                    if (restResource._actions[action].isStatic)
+                        staticActions.push(restResource._actions[action]);
                     else
-                        rowActions.push(restResource.actions[action]);
+                        rowActions.push(restResource._actions[action]);
                 }
                 else {
                     var actionInst = action;

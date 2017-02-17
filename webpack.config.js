@@ -3,45 +3,47 @@
  */
 "use strict";
 
-require("path").isAbsolute = require('path-is-absolute');
+const path = require("path");
+path.isAbsolute = require('path-is-absolute');
 require('es6-promise').polyfill();
 
-var webpack = require("webpack");
-var autoprefixer = require('autoprefixer');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require("webpack");
+const autoprefixer = require('autoprefixer');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-var ENV = process.env.npm_lifecycle_event;
+const ENV = process.env.npm_lifecycle_event;
 
-var config = {
+const config = {
     entry: {
-        "main":["./index.ts"]
+        "main":["./src/index.tsx"]
     },
     output: {
-        path:  __dirname +"/dist",
+        path:  __dirname +"/build",
         publicPath: "/",
-        filename: ENV == 'build:prod' ? "[name].min.js" : "[name].js",
+        filename: ENV == 'build' ? "[name].min.js" : "[name].js",
         chunkFilename: ENV=='dev' ? '[name].[hash].js' : '[name].js'
     },
     module: {
         loaders: [{
-            test: /\.jsx?$/,
-            loader: "babel",
-            exclude: /node_modules/
-        },{
             test: /\.tsx?$/,
             loader: "awesome-typescript-loader",
             exclude: /node_modules/
         },{
             test: /\.css$/,
-            loader: ExtractTextPlugin.extract('style', 'css?sourceMap&-url')
+            loader: ExtractTextPlugin.extract('style', 'css?sourceMap&-url!postcss')
         },{
             test: /\.html$/,
             loader: 'raw'
         }]
     },
     plugins: [
-        new ExtractTextPlugin('[name].css')
+        new webpack.optimize.DedupePlugin(),
+        new ExtractTextPlugin('[name].css'),
+        new HtmlWebpackPlugin({
+            template: './example/index.html',
+            inject: 'body'
+        })
     ],
     devServer:{
         contentBase: '.',
@@ -49,37 +51,39 @@ var config = {
     },
     resolve:{
         extensions: ['', '.js', '.ts', '.jsx', '.tsx', '.css', '.html'],
-        modulesDirectories:['node_modules']
-    },
-    externals:{
-        react:"React",
-        "react-dom":"ReactDOM",
-        "lodash":true
+        modulesDirectories:['node_modules'],
+        alias: {
+            react: path.resolve('./node_modules/react'),
+            'react-dom': path.resolve('./node_modules/react-dom'),
+            'redux-form': path.resolve('./node_modules/redux-form'),
+            "redux":path.resolve('./node_modules/redux'),
+            "immutable":path.resolve('./node_modules/immutable'),
+            'ag-grid': path.resolve('./node_modules/ag-grid'),
+            "bootstrap": path.resolve('./node_modules/bootstrap'),
+            "ag-grid-react": path.resolve('./node_modules/ag-grid-react'),
+            "react-redux":path.resolve('./node_modules/react-redux'),
+            "whatwg-fetch": path.resolve('./node_modules/whatwg-fetch')
+        }
     }
 };
 
-if(ENV === "dev"){
-    config.entry.main = ["./example/example.jsx"];
-}else{
-}
-
-if(ENV=='dev')
-    config.plugins.push(
-        new HtmlWebpackPlugin({
-            template: './example/index.html',
-            inject: 'body'
-        })
-    );
-if(ENV == 'build:prod')
-    config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+config.plugins.push(
+    new webpack.DefinePlugin({
+        'process.env.NODE_ENV': /dev/.test(ENV)?"'dev'":"'prod'"
+    })
+);
 
 switch(ENV){
-    case "dev":
-        config.devtool = 'inline-source-map';break;
-    case "build:dev":
-        config.devtool = 'eval-source-map';break;
-    case "build:prod":
-        config.devtool = 'source-map';break;
+    case "dev": {
+        config.devtools = 'inline-source-map';
+        config.entry.main=['./example/example.tsx'];
+        break;
+    }
+    case "build": {
+        config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+        config.devtools = 'source-map';
+        break;
+    }
 }
 
 module.exports = config;

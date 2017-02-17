@@ -80,7 +80,7 @@ export function RestfulActionClassFactory<T>(url:string){
             }
             if(!promise) {
                 promise = fetch(action_url, RequestConfig).then(res => res.json()).then(res => {
-                    return mapResToData(res, actionDef['key'] || actionName);
+                    return mapResToData(res, actionDef['_idGetter'] || actionName);
                 });
                 if (actionDef.cacheTime)
                     ActionCacheMap[action_url] = {

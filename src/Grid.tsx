@@ -130,7 +130,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         super(props);
         this.state = {
             quickFilterText:'',
-            models: this.props.resource?deepGetState(Store.getState(), ...this.props.resource.modelPath) as List<T>:null,
+            models: this.props.resource?deepGetState(Store.getState(), ...this.props.resource._modelPath) as List<T>:null,
             gridOptions:{
                 colDef:[],
                 suppressNoRowsOverlay:true,
@@ -161,7 +161,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
     }
     handleStoreChange(){
         if(this.props.resource) {
-            const models = deepGetState(Store.getState(), ...this.props.resource.modelPath);
+            const models = deepGetState(Store.getState(), ...this.props.resource._modelPath);
             this.setState({
                 models
             })
@@ -178,10 +178,10 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         if(!this.props.resource && !this.props.data) {
             throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
         }else if(this.props.resource){
-            if (!this.props.resource.modelPath)
+            if (!this.props.resource._modelPath)
                 throw new Error("请在resource上声明modelPath:string[]");
             this.props.resource.get();
-            this.props.resource['gridName'] = this.props.gridName || ('grid' + Math.random());
+            this.props.resource['_gridName'] = this.props.gridName || ('grid' + Math.random());
         }
         this.parseSchema(this.props.schema).then((parsed)=> {
             this.onReady(parsed)
@@ -216,7 +216,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 gridOptions['rowModelType'] = 'virtual';
                 gridOptions['datasource'] = {
                     getRows: (params: IGetRowsParams)=> {
-                        let data = deepGetState(Store.getState(), ...this.props.resource.modelPath);
+                        let data = deepGetState(Store.getState(), ...this.props.resource._modelPath);
                         if (data.length < params.endRow) {
                             const resource = this.props.resource;
                             resource.filter({
@@ -226,7 +226,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                                 }
                             });
                             resource.get().then(()=> {
-                                let data = deepGetState(Store.getState(), ...this.props.resource.modelPath);
+                                let data = deepGetState(Store.getState(), ...this.props.resource._modelPath);
                                 params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
                             });
                         }
@@ -235,7 +235,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     }
                 };
             } else
-                gridOptions['rowData'] = deepGetState(Store.getState(), ...this.props.resource.modelPath);
+                gridOptions['rowData'] = deepGetState(Store.getState(), ...this.props.resource._modelPath);
         }
         this.setState({
             staticActions,
@@ -275,7 +275,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                                 return getValueByName(value)
                         };
                         colDef['cellRendererFramework'] = this.state.themeRenderer.SelectFieldRenderer(options);
-                        colDef['options'] = options;
+                        colDef['_options'] = options;
                         colDef['filterFramework'] = EnumFilter;
                         break;
                     case "date":
@@ -329,11 +329,11 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     };
                     deleteAction['displayName']='删除';
                     rowActions.push(deleteAction);
-                } else if(typeof action === 'string' && restResource.actions[action]){
-                    if(restResource.actions[action].isStatic)
-                        staticActions.push(restResource.actions[action]);
+                } else if(typeof action === 'string' && restResource._actions[action]){
+                    if(restResource._actions[action].isStatic)
+                        staticActions.push(restResource._actions[action]);
                     else
-                        rowActions.push(restResource.actions[action]);
+                        rowActions.push(restResource._actions[action]);
                 } else{
                     const actionInst = action as StaticAction<T>;
                     actionInst.call['isStatic'] = actionInst.isStatic;

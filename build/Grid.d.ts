@@ -1,4 +1,3 @@
-/// <reference types="immutable" />
 /// <reference types="react" />
 import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";

@@ -10,9 +10,6 @@
     "removeComments": false,
     "noImplicitAny": false,
     "jsx": "react",
-    "outDir":"./build",
     "lib":["es6","scripthost","dom","es2016.array.include","es2015.promise"]
-  },
-  "include": ["src"],
-  "exclude": ["example","node_modules"]
+  }
 }

@@ -39,7 +39,7 @@ export class DateFilter extends React.Component<any,any>{
     }
 
     doesFilterPass(params: IDoesFilterPassParams): boolean {
-        let value = deepGet(params.data,this.params.colDef['key']);
+        let value = deepGet(params.data,this.params.colDef['_idGetter']);
         if(value instanceof Date){
             return this.datePassed(value)
         }else if(typeof value === 'number'){
@@ -77,7 +77,7 @@ export class EnumFilter extends React.Component<any,any>{
     constructor(params) {
         super();
         this.params = params;
-        this.options = params.colDef.options;
+        this.options = params.colDef._options;
     }
 
     render(){
@@ -93,7 +93,7 @@ export class EnumFilter extends React.Component<any,any>{
     }
 
     doesFilterPass(params: IDoesFilterPassParams): boolean {
-        let value = deepGet(params.data,this.params.colDef['key']);
+        let value = deepGet(params.data,this.params.colDef['_idGetter']);
         return this.selected.some(selectedOption=>{
             if(value instanceof Array)
                 return value.indexOf(selectedOption)>=0;
@@ -114,7 +114,7 @@ export class EnumFilter extends React.Component<any,any>{
     }
 
     setModel(model: any): void {
-        this.options = model.options;
+        this.options = model._options;
         this.selected = model.selected;
     }
 

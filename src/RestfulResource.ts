@@ -47,31 +47,16 @@ export interface ActionResourceOptions<T>{
 }
 
 export class RestfulResource<Model,Actions> implements Resource<Model>{
-    mapFilterToQuery:(filter:GridFilter)=>{[key:string]:string};
-    options:ActionResourceOptions<Model>;
-    config: RequestInit= {};
-    actions: Actions & {[actionName:string]:ActionInstance<Model>};
-    modelPath:string[];
-    gridName:string;
-    url:string;
-    key:(model:Model)=>string;
-    dispatch;
-    mapResToData:(resData:any,methodType?:"post"|"get"|"count"|"put"|"delete",reqData?:any)=>Model|(Model[])|number|boolean;
-    fetch:typeof window.fetch;
-    cacheTime?:number;
-    isCustomFilterPresent=false;
-    _query:{[key:string]:string}={};
-    _filter:{[key:string]:string}={};
     constructor({
         url,
         modelPath,
         dispatch,
-        key,
+        key=(x=>x['id']),
         mapFilterToQuery,
-        methods,
-        apiType,
-        fetch,
-        mapResToData,
+        methods={},
+        apiType='Loopback',
+        fetch = window.fetch.bind(window),
+        mapResToData = x=>x,
         actions,
         cacheTime=1,
     }:{
@@ -88,16 +73,16 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         cacheTime?:number
     }) {
         if (url.substr(-1) === '/') url=url.slice(0,-1);
-        this.key = key || (x=>x['id']);
-        this.mapResToData = mapResToData || (x=>x);
-        this.fetch = fetch || window.fetch;
-        this.modelPath = modelPath;
-        this.dispatch = dispatch;
-        this.url = url;
-        this.cacheTime=cacheTime;
+        this._idGetter = key;
+        this._mapResToData=mapResToData;
+        this._modelPath = modelPath;
+        this._dispatch = dispatch;
+        this._url = url;
+        this._fetch = fetch;
+        this._cacheTime=cacheTime;
         switch (apiType) {
             case "NodeRestful": {
-                this.mapFilterToQuery = mapFilterToQuery || function (filter) {
+                this._mapFilterToQuery = mapFilterToQuery || function (filter) {
                         let _filter: NodeRestful.Params = {};
                         filter.search.forEach(function (condition) {
                             let key = condition.field.replace(/\[[^\]]*\]/, '');
@@ -120,7 +105,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 break;
             }
             case "Loopback": {
-                this.mapFilterToQuery = mapFilterToQuery || function (filter) {
+                this._mapFilterToQuery = mapFilterToQuery || function (filter) {
                         let _filter: Loopback.Params = {where: {}};
                         filter.search.forEach(function (condition) {
                             if (/^\/.*\/$/.test(condition.value))
@@ -138,16 +123,16 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                             _filter.order = null;
                         return {filter: _filter};
                     };
-                this.count = methods.count || (()=> {
+                this.count = methods['count'] || (()=> {
                         if (this._query && this._query['filter'])
                             this._query['where'] = this._query['filter']['where'];
-                        return fetch(url + '/count' + keyValueToQueryParams(this._query), this.config)
+                        return fetch(url + '/count' + keyValueToQueryParams(this._query), this._config)
                             .then(res=>res.json()).then(res=>mapResToData(res,'count')).then((res)=> {
                                 dispatch({
                                     type: "grid/model/count",
                                     value: {
                                         modelPath,
-                                        gridName: this.gridName,
+                                        gridName: this._gridName,
                                         count: res
                                     }
                                 });
@@ -157,7 +142,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 break;
             }
             case "Swagger": {
-                this.mapFilterToQuery = mapFilterToQuery || ((filter)=> {
+                this._mapFilterToQuery = mapFilterToQuery || ((filter)=> {
                         let params = {};
                         if (filter.pagination) {
                             params['page'] = (filter.pagination.offset / filter.pagination.limit + 1);
@@ -170,20 +155,18 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 break;
             }
         }
-
-
         if(actions) {
-            let MakeAction = RestfulActionClassFactory(this.url);
-            this.actions = {} as any;
+            let MakeAction = RestfulActionClassFactory(this._url);
+            this._actions = {} as any;
             if(actions instanceof Array)
                 actions.forEach(actionDef=>{
-                    this.actions[actionDef.key||actionDef.name]=
-                        MakeAction(actionDef.name,actionDef,this.gridName,this.config,()=>this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
+                    this._actions[actionDef.key||actionDef.name]=
+                        MakeAction(actionDef.name,actionDef,this._gridName,this._config,()=>this._query,this._idGetter,modelPath,fetch,this._mapResToData,this._dispatch)
                 });
             else
                 Object.keys(actions).forEach((actionName)=> {
-                    this.actions[actionName]=
-                        MakeAction(actionName,actions[actionName],this.gridName,this.config,()=>this._query,this.key,modelPath,fetch,this.mapResToData,this.dispatch)
+                    this._actions[actionName]=
+                        MakeAction(actionName,actions[actionName],this._gridName,this._config,()=>this._query,this._idGetter,modelPath,fetch,this._mapResToData,this._dispatch)
                 });
         }
         if(methods)
@@ -192,37 +175,54 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                     this[method] = methods[method].bind(this)
             })
     }
-    lastGetAll:Promise<Model[]> | null = null;
-    LastCachedTime:number;
+
+    _mapFilterToQuery:(filter:GridFilter)=>{[key:string]:string};
+    _options:ActionResourceOptions<Model>;
+    _config: RequestInit= {};
+    _actions: Actions & {[actionName:string]:ActionInstance<Model>};
+    _modelPath:string[];
+    _gridName:string;
+    _url:string;
+    _idGetter:(model:Model)=>string;
+    _dispatch;
+    _mapResToData:(resData:any, methodType?:"post"|"get"|"count"|"put"|"delete", reqData?:any)=>Model|(Model[])|number|boolean;
+    _fetch:typeof window.fetch;
+    _cacheTime?:number;
+    _isCustomFilterPresent=false;
+    _query:{[key:string]:string}={};
+    _filter:{[key:string]:string}={};
+
+    _lastGetAll:Promise<Model[]> | null = null;
+    _lastCachedTime:number;
         //TODO catch exception
     get():Promise<Model[]>
     get(id):Promise<Model>
     get(id?):Promise<Model[]|Model>{
         if(!id){
-            if(!this.isCustomFilterPresent && this.cacheTime && this.lastGetAll && Date.now()-this.LastCachedTime<this.cacheTime*1000){
-                return this.lastGetAll;
+            if(!this._isCustomFilterPresent && this._cacheTime && this._lastGetAll && Date.now()-this._lastCachedTime<this._cacheTime*1000){
+                return this._lastGetAll;
             }
         }
-        this.LastCachedTime = Date.now();
-        const pending = this.fetch(this.url+(id!==undefined?("/"+id):"")+this.getQueryString(),this.config)
+        this._lastCachedTime = Date.now();
+        const pending = this._fetch(this._url+(id!==undefined?("/"+id):"")+this.getQueryString(),this._config)
             .then(res=>res.json()).then((res)=>{
-                const models = this.mapResToData(res,'get',id) as any;
-                if(!this.isCustomFilterPresent) {
+                const models = this._mapResToData(res,'get',id) as any;
+                if(!this._isCustomFilterPresent) {
                     if (!id) {
-                        this.dispatch({
+                        this._dispatch({
                             type: "grid/model/get",
                             value: {
-                                modelPath: this.modelPath,
-                                key: this.key,
+                                modelPath: this._modelPath,
+                                key: this._idGetter,
                                 models
                             }
                         });
                     } else {
-                        this.dispatch({
+                        this._dispatch({
                             type: "grid/model/put",
                             value: {
-                                modelPath: this.modelPath,
-                                key: this.key,
+                                modelPath: this._modelPath,
+                                key: this._idGetter,
                                 model: models
                             }
                         });
@@ -230,24 +230,24 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 }
                 return models;
         },(e)=>{
-            if(!this.isCustomFilterPresent)
-                this.lastGetAll = null;
+            if(!this._isCustomFilterPresent)
+                this._lastGetAll = null;
             return this.errorHandler(e);
         });
-        if(!id && !this.isCustomFilterPresent)
-            this.lastGetAll = pending;
+        if(!id && !this._isCustomFilterPresent)
+            this._lastGetAll = pending;
         return pending;
     }
     count():Promise<number>{
-        return this.fetch(this.url+'/' + 'count'+this.getQueryString(),this.config)
+        return this._fetch(this._url+'/' + 'count'+this.getQueryString(),this._config)
             .then(res=>res.json()).then((res)=>{
-                const count = this.mapResToData(res,'count');
-                this.dispatch({
+                const count = this._mapResToData(res,'count');
+                this._dispatch({
                     type:"grid/model/count",
                     value:{
-                        modelPath:this.modelPath,
-                        gridName:this.gridName,
-                        key:this.key,
+                        modelPath:this._modelPath,
+                        gridName:this._gridName,
+                        key:this._idGetter,
                         count
                     }
                 });
@@ -255,15 +255,15 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         },this.errorHandler.bind(this))
     }
     delete(data):Promise<boolean>{
-        return this.fetch(this.url+'/' + this.key(data), Object.assign({},this.config,{
+        return this._fetch(this._url+'/' + this._idGetter(data), Object.assign({},this._config,{
             method:"DELETE"
         })).then(res=>res.json()).then((res)=>{
-            if(this.mapResToData(res,'delete',data)) {
-                this.dispatch({
+            if(this._mapResToData(res,'delete',data)) {
+                this._dispatch({
                     type: "grid/model/delete",
                     value: {
-                        modelPath: this.modelPath,
-                        key: this.key,
+                        modelPath: this._modelPath,
+                        key: this._idGetter,
                         model: data
                     }
                 });
@@ -274,19 +274,19 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         },this.errorHandler.bind(this))
     }
     put(data):Promise<Model>{
-        if(!this.key(data))
+        if(!this._idGetter(data))
             return this['post'](data);
         else
-            return this.fetch(this.url+'/' +this.key(data), Object.assign({},this.config,{
+            return this._fetch(this._url+'/' +this._idGetter(data), Object.assign({},this._config,{
                 method:"PUT",
                 body:JSON.stringify(data)
             })).then(res=>res.json()).then((res)=>{
-                const model = this.mapResToData(res,'put',data);
-                this.dispatch({
+                const model = this._mapResToData(res,'put',data);
+                this._dispatch({
                     type:"grid/model/put",
                     value:{
-                        modelPath:this.modelPath,
-                        key:this.key,
+                        modelPath:this._modelPath,
+                        key:this._idGetter,
                         model
                     }
                 });
@@ -295,16 +295,16 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             },this.errorHandler.bind(this))
     }
     post(data):Promise<Model>{
-        return this.fetch(this.url, Object.assign({},this.config,{
+        return this._fetch(this._url, Object.assign({},this._config,{
             method:"POST",
             body:JSON.stringify(data)
         })).then(res=>res.json()).then((res)=>{
-            const model = this.mapResToData(res,'post',data);
-            this.dispatch({
+            const model = this._mapResToData(res,'post',data);
+            this._dispatch({
                 type:"grid/model/post",
                 value:{
-                    modelPath:this.modelPath,
-                    key:this.key,
+                    modelPath:this._modelPath,
+                    key:this._idGetter,
                     model
                 }
             });
@@ -319,21 +319,21 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         return keyValueToQueryParams(Object.assign({},this._filter,this._query));
     }
     filter(_filter:GridFilter){
-        this._filter = this.mapFilterToQuery(_filter);
+        this._filter = this._mapFilterToQuery(_filter);
         return this;
     }
     query(query){
         if(!query || !Object.keys(query).length){
             this._query = {};
-            this.isCustomFilterPresent = false;
+            this._isCustomFilterPresent = false;
         }else{
             this._query = query;
-            this.isCustomFilterPresent = true;
+            this._isCustomFilterPresent = true;
         }
         return this;
     }
     markAsDirty(){
-        this.LastCachedTime = -Infinity;
+        this._lastCachedTime = -Infinity;
         return this;
     }
 }

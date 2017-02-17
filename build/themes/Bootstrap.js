@@ -16,12 +16,10 @@ var Theme = {
         var value = props.value;
         if (!(value instanceof Array))
             value = [value];
-        return React.createElement("div", null,
-            value.map(function (value, i) {
-                var index = options.findIndex(function (x) { return x.name == value; });
-                return React.createElement("label", { key: i, className: 'label label-' + colors[index % colors.length] }, value);
-            }),
-            ";");
+        return React.createElement("div", null, value.map(function (value, i) {
+            var index = options.findIndex(function (x) { return x.name == value; });
+            return React.createElement("label", { key: i, className: 'label label-' + colors[index % colors.length] }, value);
+        }));
     }; },
     GridRenderer: function (props) {
         return React.createElement("div", { className: "redux-ag-grid ag-bootstrap panel panel-default" },
@@ -36,7 +34,7 @@ var Theme = {
     ActionCellRenderer: function (actions) { return (function (_super) {
         __extends(ActionCell, _super);
         function ActionCell() {
-            return _super.apply(this, arguments) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         ActionCell.prototype.render = function () {
             var _this = this;

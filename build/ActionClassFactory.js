@@ -38,7 +38,7 @@ function RestfulActionClassFactory(url) {
             }
             if (!promise) {
                 promise = fetch(action_url, RequestConfig).then(function (res) { return res.json(); }).then(function (res) {
-                    return mapResToData(res, actionDef['key'] || actionName);
+                    return mapResToData(res, actionDef['_idGetter'] || actionName);
                 });
                 if (actionDef.cacheTime)
                     ActionCacheMap[action_url] = {

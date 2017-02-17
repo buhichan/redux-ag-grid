@@ -17,7 +17,7 @@ const Theme:ITheme = {
                     const index= options.findIndex(x=>x.name==value);
                     return <label key={i} className={'label label-'+colors[index%colors.length]}>{value}</label>
                 })
-            };
+            }
         </div>
     },
     GridRenderer:(props:GridRendererProps)=>{

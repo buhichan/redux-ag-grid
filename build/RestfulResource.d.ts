@@ -16,29 +16,6 @@ export interface Resource<T> {
 export interface ActionResourceOptions<T> {
 }
 export declare class RestfulResource<Model, Actions> implements Resource<Model> {
-    mapFilterToQuery: (filter: GridFilter) => {
-        [key: string]: string;
-    };
-    options: ActionResourceOptions<Model>;
-    config: RequestInit;
-    actions: Actions & {
-        [actionName: string]: ActionInstance<Model>;
-    };
-    modelPath: string[];
-    gridName: string;
-    url: string;
-    key: (model: Model) => string;
-    dispatch: any;
-    mapResToData: (resData: any, methodType?: "post" | "get" | "count" | "put" | "delete", reqData?: any) => Model | (Model[]) | number | boolean;
-    fetch: typeof window.fetch;
-    cacheTime?: number;
-    isCustomFilterPresent: boolean;
-    _query: {
-        [key: string]: string;
-    };
-    _filter: {
-        [key: string]: string;
-    };
     constructor({url, modelPath, dispatch, key, mapFilterToQuery, methods, apiType, fetch, mapResToData, actions, cacheTime}: {
         url: string;
         modelPath: string[];
@@ -59,8 +36,31 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         }>;
         cacheTime?: number;
     });
-    lastGetAll: Promise<Model[]> | null;
-    LastCachedTime: number;
+    _mapFilterToQuery: (filter: GridFilter) => {
+        [key: string]: string;
+    };
+    _options: ActionResourceOptions<Model>;
+    _config: RequestInit;
+    _actions: Actions & {
+        [actionName: string]: ActionInstance<Model>;
+    };
+    _modelPath: string[];
+    _gridName: string;
+    _url: string;
+    _idGetter: (model: Model) => string;
+    _dispatch: any;
+    _mapResToData: (resData: any, methodType?: "post" | "get" | "count" | "put" | "delete", reqData?: any) => Model | (Model[]) | number | boolean;
+    _fetch: typeof window.fetch;
+    _cacheTime?: number;
+    _isCustomFilterPresent: boolean;
+    _query: {
+        [key: string]: string;
+    };
+    _filter: {
+        [key: string]: string;
+    };
+    _lastGetAll: Promise<Model[]> | null;
+    _lastCachedTime: number;
     get(): Promise<Model[]>;
     get(id: any): Promise<Model>;
     count(): Promise<number>;
