@@ -62,10 +62,14 @@ var Grid = (function (_super) {
             quickFilterText: '',
             models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath)) : null,
             gridOptions: {
-                colDef: [],
+                columnDefs: [],
                 suppressNoRowsOverlay: true,
                 rowData: [],
                 paginationPageSize: 20,
+                style: {
+                    height: "100%",
+                    width: "100%"
+                },
                 rowHeight: 40,
                 onGridReady: function (params) {
                     _this.gridApi = params.api;

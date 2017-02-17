@@ -22,14 +22,14 @@ var Theme = {
         }));
     }; },
     GridRenderer: function (props) {
-        return React.createElement("div", { className: "redux-ag-grid ag-bootstrap panel panel-default" },
+        return React.createElement("div", { className: "redux-ag-grid ag-bootstrap panel panel-default", style: { height: "100%" } },
             React.createElement("div", { className: "panel-heading clearfix" },
                 props.noSelect || React.createElement("div", { className: "pull-left" },
                     React.createElement("button", { className: "btn btn-default", onClick: props.onSelectAll }, "\u5168\u9009/\u53D6\u6D88")),
                 React.createElement("div", { className: "btn-group btn-group-sm pull-right" }, props.actions.map(function (action, i) {
                     return React.createElement("button", { key: i, className: "btn btn-default", onClick: function (e) { return action(props.gridApi.getSelectedRows(), e); } }, action.displayName);
                 }))),
-            React.createElement("div", { className: "panel-body", style: { height: (props.height || 600) + "px" } }, props.children));
+            React.createElement("div", { className: "panel-body", style: { height: (props.height ? (props.height || 600) + "px" : "100%") } }, props.children));
     },
     ActionCellRenderer: function (actions) { return (function (_super) {
         __extends(ActionCell, _super);
