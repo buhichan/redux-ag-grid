@@ -157,15 +157,15 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         }
         if(actions) {
             let MakeAction = RestfulActionClassFactory(this._url);
-            this._actions = {} as any;
+            this.actions = {} as any;
             if(actions instanceof Array)
                 actions.forEach(actionDef=>{
-                    this._actions[actionDef.key||actionDef.name]=
+                    this.actions[actionDef.key||actionDef.name]=
                         MakeAction(actionDef.name,actionDef,this._gridName,this._config,()=>this._query,this._idGetter,modelPath,fetch,this._mapResToData,this._dispatch)
                 });
             else
                 Object.keys(actions).forEach((actionName)=> {
-                    this._actions[actionName]=
+                    this.actions[actionName]=
                         MakeAction(actionName,actions[actionName],this._gridName,this._config,()=>this._query,this._idGetter,modelPath,fetch,this._mapResToData,this._dispatch)
                 });
         }
@@ -179,7 +179,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     _mapFilterToQuery:(filter:GridFilter)=>{[key:string]:string};
     _options:ActionResourceOptions<Model>;
     _config: RequestInit= {};
-    _actions: Actions & {[actionName:string]:ActionInstance<Model>};
+    actions: Actions & {[actionName:string]:ActionInstance<Model>};
     _modelPath:string[];
     _gridName:string;
     _url:string;

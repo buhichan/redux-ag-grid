@@ -99,15 +99,15 @@ var RestfulResource = (function () {
         }
         if (actions) {
             var MakeAction_1 = ActionClassFactory_1.RestfulActionClassFactory(this._url);
-            this._actions = {};
+            this.actions = {};
             if (actions instanceof Array)
                 actions.forEach(function (actionDef) {
-                    _this._actions[actionDef.key || actionDef.name] =
+                    _this.actions[actionDef.key || actionDef.name] =
                         MakeAction_1(actionDef.name, actionDef, _this._gridName, _this._config, function () { return _this._query; }, _this._idGetter, modelPath, fetch, _this._mapResToData, _this._dispatch);
                 });
             else
                 Object.keys(actions).forEach(function (actionName) {
-                    _this._actions[actionName] =
+                    _this.actions[actionName] =
                         MakeAction_1(actionName, actions[actionName], _this._gridName, _this._config, function () { return _this._query; }, _this._idGetter, modelPath, fetch, _this._mapResToData, _this._dispatch);
                 });
         }

@@ -41,7 +41,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     };
     _options: ActionResourceOptions<Model>;
     _config: RequestInit;
-    _actions: Actions & {
+    actions: Actions & {
         [actionName: string]: ActionInstance<Model>;
     };
     _modelPath: string[];
