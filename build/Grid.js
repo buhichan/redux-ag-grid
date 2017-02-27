@@ -300,11 +300,11 @@ var Grid = (function (_super) {
                     deleteAction['displayName'] = '删除';
                     rowActions.push(deleteAction);
                 }
-                else if (typeof action === 'string' && restResource._actions[action]) {
-                    if (restResource._actions[action].isStatic)
-                        staticActions.push(restResource._actions[action]);
+                else if (typeof action === 'string' && restResource.actions[action]) {
+                    if (restResource.actions[action].isStatic)
+                        staticActions.push(restResource.actions[action]);
                     else
-                        rowActions.push(restResource._actions[action]);
+                        rowActions.push(restResource.actions[action]);
                 }
                 else {
                     var actionInst = action;
