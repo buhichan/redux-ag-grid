@@ -5,6 +5,7 @@
 
 import "bootstrap/dist/css/bootstrap.css"
 import {ReduxAgGrid,GridFieldSchema,setStore} from "../src"
+import {AgGridReact} from "ag-grid-react"
 import * as ReactDOM from "react-dom"
 import * as React from "react"
 import {createStore} from "redux"
@@ -64,6 +65,8 @@ setStore(store);
 
 ReactDOM.render(
     (<div style={{height:"1000px"}} >
-        <ReduxAgGrid resource={resource as any} schema={schema} actions={actions} />
+        <ReduxAgGrid resource={resource as any} schema={schema} actions={actions} >
+            <AgGridReact />
+        </ReduxAgGrid>
     </div>)
     ,document.getElementById('root'));

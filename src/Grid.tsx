@@ -6,7 +6,6 @@ import "ag-grid/dist/styles/ag-grid.css"
 import {Component} from "react"
 import * as React from "react"
 import {IGetRowsParams} from "ag-grid"
-import {AgGridReact} from "ag-grid-react"
 import {AbstractColDef,ColDef,GridApi,ColumnApi} from "ag-grid";
 import {RestfulResource} from "./RestfulResource"
 import {deepGetState, deepGet} from "./Utils";
@@ -84,6 +83,7 @@ export interface StaticAction<T> extends BaseActionDef<T> {
 export interface GridProps<T>{
     gridName?:string,
     gridApi?:(gridApi:GridApi)=>void,
+    columnApi?:(columnApi:ColumnApi)=>void,
     resource?:RestfulResource<T,any>,
     schema?:GridFieldSchema[],
     actions?:(InstanceAction<T>|StaticAction<T>|string)[],
@@ -93,7 +93,6 @@ export interface GridProps<T>{
     serverSideFilter?:boolean,
     data?:T[] | List<T>
     noSearch?:boolean
-    noSelect?:boolean
 }
 
 function getValue(model,field){
@@ -146,6 +145,8 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     this.columnApi=params.columnApi;
                     if(this.props.gridApi)
                         this.props.gridApi(this.gridApi);
+                    if(this.props.columnApi)
+                        this.props.columnApi(this.columnApi);
                 },
                 onColumnEverythingChanged:()=>window.innerWidth>=480&&this.gridApi&&this.gridApi.sizeColumnsToFit(),
                 rowSelection:"multiple",
@@ -172,11 +173,18 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         }
     }
     unsubscriber;
+    pendingResize;
+    onResize=()=>{
+        if(this.pendingResize)
+            clearTimeout(this.pendingResize);
+        setTimeout(()=>this.gridApi && this.gridApi.sizeColumnsToFit(),300);
+    };
     componentWillUnmount(){
         this.isUnmounting = true;
         if(this.props.gridApi)
             this.props.gridApi(null);
         this.unsubscriber && this.unsubscriber();
+        window.removeEventListener('resize',this.onResize);
     }
     componentWillMount(){
         if(!this.props.resource && !this.props.data) {
@@ -187,6 +195,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
             this.props.resource.get();
             this.props.resource['_gridName'] = this.props.gridName || ('grid' + Math.random());
         }
+        window.addEventListener('resize',this.onResize);
         this.parseSchema(this.props.schema).then((parsed)=> {
             this.onReady(parsed)
         });
@@ -354,26 +363,28 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
             rowActions
         }
     }
+    onSelectAll=()=>{
+        this.state.selectAll?this.gridApi.deselectAll():this.gridApi.selectAll();
+        this.state.selectAll = !this.state.selectAll;
+    };
     render(){
+        const AgGrid = React.Children.only(this.props.children);
         let {staticActions,gridOptions} = this.state;
         if(!this.props.serverSideFilter && this.props.resource)
             gridOptions['rowData'] = this.state.models.toArray();
         else if(this.props.data)
             gridOptions['rowData'] = this.props.data;
         let GridRenderer = this.state.themeRenderer.GridRenderer;
+        const AgGridCopy = React.cloneElement(AgGrid,Object.assign(gridOptions,AgGrid.props));
         return <GridRenderer
             noSearch={this.props.noSearch}
-            noSelect={this.props.noSelect}
             actions={staticActions}
-            onSelectAll={()=>{
-                        this.state.selectAll?this.gridApi.deselectAll():this.gridApi.selectAll();
-                        this.state.selectAll = !this.state.selectAll;
-                    }}
+            onSelectAll={this.onSelectAll}
             dispatch={this.props.dispatch}
             gridApi={this.gridApi}
             height={this.props.height}
         >
-            <AgGridReact {...gridOptions}/>
+            {AgGridCopy}
         </GridRenderer>;
     }
 }

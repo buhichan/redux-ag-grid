@@ -54,6 +54,7 @@ export interface StaticAction<T> extends BaseActionDef<T> {
 export interface GridProps<T> {
     gridName?: string;
     gridApi?: (gridApi: GridApi) => void;
+    columnApi?: (columnApi: ColumnApi) => void;
     resource?: RestfulResource<T, any>;
     schema?: GridFieldSchema[];
     actions?: (InstanceAction<T> | StaticAction<T> | string)[];
@@ -63,7 +64,6 @@ export interface GridProps<T> {
     serverSideFilter?: boolean;
     data?: T[] | List<T>;
     noSearch?: boolean;
-    noSelect?: boolean;
 }
 export declare function setStore(store: any): void;
 export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {
@@ -74,6 +74,8 @@ export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {
     componentDidMount(): void;
     handleStoreChange(): void;
     unsubscriber: any;
+    pendingResize: any;
+    onResize: () => void;
     componentWillUnmount(): void;
     componentWillMount(): void;
     onReady(schema: any): void;
@@ -85,5 +87,6 @@ export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {
         staticActions: ActionInstance<T>[];
         rowActions: ActionInstance<T>[];
     };
+    onSelectAll: () => void;
     render(): JSX.Element;
 }

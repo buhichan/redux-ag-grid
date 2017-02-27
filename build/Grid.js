@@ -7,18 +7,9 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var __assign = (this && this.__assign) || Object.assign || function(t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-        s = arguments[i];
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-            t[p] = s[p];
-    }
-    return t;
-};
 require("ag-grid/dist/styles/ag-grid.css");
 var react_1 = require("react");
 var React = require("react");
-var ag_grid_react_1 = require("ag-grid-react");
 var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
@@ -57,7 +48,16 @@ var Grid = (function (_super) {
     __extends(Grid, _super);
     function Grid(props, context) {
         var _this = _super.call(this, props) || this;
+        _this.onResize = function () {
+            if (_this.pendingResize)
+                clearTimeout(_this.pendingResize);
+            setTimeout(function () { return _this.gridApi && _this.gridApi.sizeColumnsToFit(); }, 300);
+        };
         _this.isUnmounting = false;
+        _this.onSelectAll = function () {
+            _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();
+            _this.state.selectAll = !_this.state.selectAll;
+        };
         _this.state = {
             quickFilterText: '',
             models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath)) : null,
@@ -76,6 +76,8 @@ var Grid = (function (_super) {
                     _this.columnApi = params.columnApi;
                     if (_this.props.gridApi)
                         _this.props.gridApi(_this.gridApi);
+                    if (_this.props.columnApi)
+                        _this.props.columnApi(_this.columnApi);
                 },
                 onColumnEverythingChanged: function () { return window.innerWidth >= 480 && _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
                 rowSelection: "multiple",
@@ -119,6 +121,7 @@ var Grid = (function (_super) {
         if (this.props.gridApi)
             this.props.gridApi(null);
         this.unsubscriber && this.unsubscriber();
+        window.removeEventListener('resize', this.onResize);
     };
     Grid.prototype.componentWillMount = function () {
         var _this = this;
@@ -131,6 +134,7 @@ var Grid = (function (_super) {
             this.props.resource.get();
             this.props.resource['_gridName'] = this.props.gridName || ('grid' + Math.random());
         }
+        window.addEventListener('resize', this.onResize);
         this.parseSchema(this.props.schema).then(function (parsed) {
             _this.onReady(parsed);
         });
@@ -319,18 +323,15 @@ var Grid = (function (_super) {
         };
     };
     Grid.prototype.render = function () {
-        var _this = this;
+        var AgGrid = React.Children.only(this.props.children);
         var _a = this.state, staticActions = _a.staticActions, gridOptions = _a.gridOptions;
         if (!this.props.serverSideFilter && this.props.resource)
             gridOptions['rowData'] = this.state.models.toArray();
         else if (this.props.data)
             gridOptions['rowData'] = this.props.data;
         var GridRenderer = this.state.themeRenderer.GridRenderer;
-        return React.createElement(GridRenderer, { noSearch: this.props.noSearch, noSelect: this.props.noSelect, actions: staticActions, onSelectAll: function () {
-                _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();
-                _this.state.selectAll = !_this.state.selectAll;
-            }, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height },
-            React.createElement(ag_grid_react_1.AgGridReact, __assign({}, gridOptions)));
+        var AgGridCopy = React.cloneElement(AgGrid, Object.assign(gridOptions, AgGrid.props));
+        return React.createElement(GridRenderer, { noSearch: this.props.noSearch, actions: staticActions, onSelectAll: this.onSelectAll, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height }, AgGridCopy);
     };
     return Grid;
 }(react_1.Component));
