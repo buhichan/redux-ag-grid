@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -p .",
-    "version": "npm run build && (rm -f build/index.* || true) && git add -A",
+    "version": "npm run build && git add -A",
     "postversion": "git push && git push --tags",
     "dev": "webpack-dev-server --devtool=source-map --host=0.0.0.0 --history-api-fallback --port=8086 --inline --progress"
   },
