@@ -1,11 +1,11 @@
 /// <reference types="react" />
 import "ag-grid/dist/styles/ag-grid.css";
 import { Component } from "react";
+import { GridOptions } from "ag-grid";
 import { AbstractColDef, ColDef, GridApi, ColumnApi } from "ag-grid";
 import { RestfulResource } from "./RestfulResource";
 import { ActionInstance, BaseActionDef } from "./ActionClassFactory";
 import { ITheme } from "./themes";
-import "./themes/Bootstrap";
 import { List } from "immutable";
 export interface GridFilter {
     quickFilterText?: string;
@@ -38,7 +38,7 @@ export interface GridFieldSchema extends ColDef {
 }
 export interface GridState<T> {
     quickFilterText?: string;
-    gridOptions?: any;
+    gridOptions?: GridOptions;
     themeRenderer: ITheme;
     selectAll?: boolean;
     models: List<T>;
@@ -58,12 +58,13 @@ export interface GridProps<T> {
     resource?: RestfulResource<T, any>;
     schema?: GridFieldSchema[];
     actions?: (InstanceAction<T> | StaticAction<T> | string)[];
-    gridOptions?: any;
+    gridOptions?: GridOptions;
     dispatch?: any;
     height?: number;
     serverSideFilter?: boolean;
     data?: T[] | List<T>;
     noSearch?: boolean;
+    selectionStyle?: "row" | "checkbox";
 }
 export declare function setStore(store: any): void;
 export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {
@@ -84,7 +85,7 @@ export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {
     componentWillReceiveProps(newProps: GridProps<T>): void;
     parseSchema(schema: GridFieldSchema[]): Promise<AbstractColDef[]>;
     getActions(): {
-        staticActions: ActionInstance<T>[];
+        staticActions: StaticAction<T>[];
         rowActions: ActionInstance<T>[];
     };
     onSelectAll: () => void;

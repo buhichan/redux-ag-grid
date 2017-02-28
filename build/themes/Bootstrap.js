@@ -10,27 +10,62 @@ var __extends = (this && this.__extends) || function (d, b) {
 var React = require("react");
 require("ag-grid/dist/styles/theme-bootstrap.css");
 var index_1 = require("./index");
-var Theme = {
-    SelectFieldRenderer: function (options) { return function SelectFieldRenderer(props) {
-        var colors = ['primary', 'success', 'warning', 'info', 'danger'];
-        var value = props.value;
-        if (!(value instanceof Array))
-            value = [value];
-        return React.createElement("div", null, value.map(function (value, i) {
-            var index = options.findIndex(function (x) { return x.name == value; });
-            return React.createElement("label", { key: i, className: 'label label-' + colors[index % colors.length] }, value);
-        }));
-    }; },
-    GridRenderer: function (props) {
-        return React.createElement("div", { className: "redux-ag-grid ag-bootstrap panel panel-default", style: { height: "100%" } },
-            React.createElement("div", { className: "panel-heading clearfix" },
-                props.noSelect || React.createElement("div", { className: "pull-left" },
-                    React.createElement("button", { className: "btn btn-default", onClick: props.onSelectAll }, "\u5168\u9009/\u53D6\u6D88")),
-                React.createElement("div", { className: "btn-group btn-group-sm pull-right" }, props.actions.map(function (action, i) {
-                    return React.createElement("button", { key: i, className: "btn btn-default", onClick: function (e) { return action(props.gridApi.getSelectedRows(), e); } }, action.displayName);
-                }))),
-            React.createElement("div", { className: "panel-body", style: { height: (props.height ? (props.height || 600) + "px" : "100%") } }, props.children));
-    },
+index_1.setTheme({
+    HeaderCheckboxRenderer: (function (_super) {
+        __extends(HeaderCheckboxCell, _super);
+        function HeaderCheckboxCell() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        HeaderCheckboxCell.prototype.render = function () {
+            return React.createElement("div", null, "bootstrap\u4E3B\u9898\u7684\u4E0D\u9700\u8981\u81EA\u5B9A\u4E49checkbox,\u8BF7\u5728coldef\u91CC\u52A0\u4E0AheaderCheckboxSelection:true\u4EE3\u66FF");
+        };
+        return HeaderCheckboxCell;
+    }(React.PureComponent)),
+    CheckboxRenderer: (function (_super) {
+        __extends(CheckboxCell, _super);
+        function CheckboxCell() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        CheckboxCell.prototype.render = function () {
+            return React.createElement("div", null, "bootstrap\u4E3B\u9898\u7684\u4E0D\u9700\u8981\u81EA\u5B9A\u4E49checkbox,\u8BF7\u5728coldef\u91CC\u52A0\u4E0AcheckboxSelection:true\u4EE3\u66FF");
+        };
+        return CheckboxCell;
+    }(React.PureComponent)),
+    SelectFieldRenderer: function (options) { return (function (_super) {
+        __extends(SelectFieldRenderer, _super);
+        function SelectFieldRenderer() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        SelectFieldRenderer.prototype.render = function () {
+            var colors = ['primary', 'success', 'warning', 'info', 'danger'];
+            var value = this.props.value;
+            if (!(value instanceof Array))
+                value = [value];
+            return React.createElement("div", null, value.map(function (value, i) {
+                var index = options.findIndex(function (x) { return x.name == value; });
+                return React.createElement("label", { key: i, className: 'label label-' + colors[index % colors.length] }, value);
+            }));
+        };
+        return SelectFieldRenderer;
+    }(React.PureComponent)); },
+    GridRenderer: (function (_super) {
+        __extends(GridRenderer, _super);
+        function GridRenderer() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        GridRenderer.prototype.render = function () {
+            var props = this.props;
+            return React.createElement("div", { className: "redux-ag-grid ag-bootstrap panel panel-default", style: { height: "100%" } },
+                React.createElement("div", { className: "panel-heading clearfix" },
+                    props.noSelect || React.createElement("div", { className: "pull-left" },
+                        React.createElement("button", { className: "btn btn-default", onClick: props.onSelectAll }, "\u5168\u9009/\u53D6\u6D88")),
+                    React.createElement("div", { className: "btn-group btn-group-sm pull-right" }, props.actions.map(function (action, i) {
+                        return React.createElement("button", { key: i, className: "btn btn-default", onClick: function (e) { return action(props.gridApi.getSelectedRows(), e); } }, action.displayName);
+                    }))),
+                React.createElement("div", { className: "panel-body", style: { height: (props.height ? (props.height || 600) + "px" : "100%") } }, props.children));
+        };
+        return GridRenderer;
+    }(React.PureComponent)),
     ActionCellRenderer: function (actions) { return (function (_super) {
         __extends(ActionCell, _super);
         function ActionCell() {
@@ -49,6 +84,5 @@ var Theme = {
         };
         return ActionCell;
     }(React.Component)); }
-};
-index_1.setTheme(Theme);
+});
 //# sourceMappingURL=Bootstrap.js.map

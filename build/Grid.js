@@ -13,7 +13,6 @@ var React = require("react");
 var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
-require("./themes/Bootstrap");
 var redux_1 = require("redux");
 var formatDate = new Intl.DateTimeFormat(['zh-CN'], {
     hour12: false,
@@ -30,6 +29,7 @@ var formatDateTime = new Intl.DateTimeFormat(['zh-CN'], {
     minute: "2-digit",
     second: "2-digit"
 });
+//todo: 1.3.0:做个selection的prop,表示用表头checkbox还是单击行来选择.
 function getValue(model, field) {
     if (/\.|\[|\]/.test(field))
         return Utils_1.deepGet(model, field);
@@ -66,10 +66,6 @@ var Grid = (function (_super) {
                 suppressNoRowsOverlay: true,
                 rowData: [],
                 paginationPageSize: 20,
-                style: {
-                    height: "100%",
-                    width: "100%"
-                },
                 rowHeight: 40,
                 onGridReady: function (params) {
                     _this.gridApi = params.api;
@@ -81,8 +77,8 @@ var Grid = (function (_super) {
                 },
                 onColumnEverythingChanged: function () { return window.innerWidth >= 480 && _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
                 rowSelection: "multiple",
-                enableSorting: "true",
-                enableFilter: "true",
+                enableSorting: true,
+                enableFilter: true,
                 enableColResize: true
             },
             themeRenderer: themes_1.currentTheme(),
@@ -95,7 +91,7 @@ var Grid = (function (_super) {
     Grid.prototype.shouldComponentUpdate = function (nextProps, nextState) {
         if (this.props.schema !== nextProps.schema ||
             this.props.actions !== nextProps.actions ||
-            this.state.gridOptions.colDef !== nextState.gridOptions.colDef ||
+            this.state.gridOptions.columnDefs !== nextState.gridOptions.columnDefs ||
             this.state.staticActions !== nextState.staticActions)
             return true;
         if (this.props.resource) {
@@ -142,27 +138,50 @@ var Grid = (function (_super) {
     Grid.prototype.onReady = function (schema) {
         var _this = this;
         var _a = this.getActions(), staticActions = _a.staticActions, rowActions = _a.rowActions;
-        var columnDefs;
-        if (!schema || !schema.length)
-            columnDefs = [];
-        else if (rowActions.length)
-            columnDefs = schema.concat([{
-                    headerName: "",
-                    suppressFilter: true,
-                    suppressMenu: true,
-                    suppressSorting: true,
-                    cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
-                }]);
-        else
-            columnDefs = schema;
         var gridOptions = Object.assign(this.state.gridOptions, {
             quickFilterText: this.state.quickFilterText,
-            columnDefs: columnDefs,
             context: {
                 getSelected: function () { return _this.gridApi.getSelectedRows(); },
                 dispatch: this.props.dispatch
             },
         });
+        var columnDefs;
+        if (!schema || !schema.length)
+            columnDefs = [];
+        else {
+            if (rowActions.length)
+                columnDefs = schema.concat({
+                    headerName: "",
+                    suppressFilter: true,
+                    suppressMenu: true,
+                    suppressSorting: true,
+                    cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
+                });
+            else
+                columnDefs = schema;
+            if (this.props.selectionStyle === 'checkbox') {
+                //todo: if checkbox renderer is defined, use it, otherwise use ag-grid's default
+                // if(this.state.themeRenderer.CheckboxRenderer)
+                //     columnDefs.unshift({
+                //         cellRendererFramework: this.state.themeRenderer.CheckboxRenderer,
+                //         headerName: "",
+                //         suppressFilter: true,
+                //         suppressMenu: true,
+                //         suppressSorting: true,
+                //         headerComponentFramework: this.state.themeRenderer.CheckboxRenderer
+                //     });
+                Object.assign(columnDefs[0], {
+                    checkboxSelection: true,
+                    headerCheckboxSelection: true,
+                    headerCheckboxSelectionFilteredOnly: true
+                });
+                gridOptions.suppressRowClickSelection = true;
+            }
+            else if (this.props.selectionStyle === 'row') {
+                gridOptions.suppressRowClickSelection = false;
+            }
+        }
+        gridOptions.columnDefs = columnDefs;
         if (this.props.resource) {
             //todo: server side filtering
             if (this.props.serverSideFilter) {
@@ -219,7 +238,7 @@ var Grid = (function (_super) {
                 //todo deep key not works with select/date
                 switch (column.type) {
                     case "select":
-                        colDef['valueGetter'] = function enumValueGetter(_a) {
+                        colDef.valueGetter = function enumValueGetter(_a) {
                             var colDef = _a.colDef, data = _a.data;
                             function getValueByName(entryValue) {
                                 var i = options.findIndex(function (x) { return x.value == entryValue; });
@@ -234,9 +253,9 @@ var Grid = (function (_super) {
                             else
                                 return getValueByName(value);
                         };
-                        colDef['cellRendererFramework'] = _this.state.themeRenderer.SelectFieldRenderer(options);
-                        colDef['_options'] = options;
-                        colDef['filterFramework'] = GridFilters_1.EnumFilter;
+                        colDef.cellRendererFramework = _this.state.themeRenderer.SelectFieldRenderer(options);
+                        colDef['_options'] = options; //may be polluted ?
+                        colDef.filterFramework = GridFilters_1.EnumFilter;
                         break;
                     case "date":
                     case "datetime-local":
@@ -245,31 +264,31 @@ var Grid = (function (_super) {
                             formatter_1 = formatDate;
                         else
                             formatter_1 = formatDateTime;
-                        colDef['valueGetter'] = function (_a) {
+                        colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             var v = getValue(data, colDef.key);
                             return v ? formatter_1.format(new Date(v)) : "";
                         };
-                        colDef['filterFramework'] = GridFilters_1.DateFilter;
+                        colDef.filterFramework = GridFilters_1.DateFilter;
                         break;
                     case "number":
-                        colDef['valueGetter'] = function (_a) {
+                        colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             return formatNumber.format(getValue(data, colDef.key));
                         };
                         break;
                     case "checkbox":
-                        colDef['valueGetter'] = function (_a) {
+                        colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             return getValue(data, colDef.key) ? "是" : "否";
                         };
                         break;
                     case "group":
-                        colDef['children'] = children;
-                        colDef['marryChildren'] = true;
+                        colDef.children = children;
+                        colDef.marryChildren = true;
                         break;
                     default:
-                        colDef['field'] = column.key && column.key.replace(/\[(\d+)\]/g, ".$1");
+                        colDef.field = column.key && column.key.replace(/\[(\d+)\]/g, ".$1");
                 }
                 return colDef;
             };
@@ -308,9 +327,7 @@ var Grid = (function (_super) {
                 }
                 else {
                     var actionInst = action;
-                    actionInst.call['isStatic'] = actionInst.isStatic;
-                    actionInst.call['enabled'] = actionInst.enabled;
-                    actionInst.call['displayName'] = actionInst.displayName;
+                    Object.assign(actionInst.call, actionInst);
                     if (actionInst.isStatic)
                         staticActions.push(actionInst.call);
                     else
