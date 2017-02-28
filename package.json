@@ -22,13 +22,18 @@
   ],
   "peerDependencies": {
     "bootstrap": "^3.3.7",
-    "immutable": "^3.8.1",
+    "material-ui": "^0.17.0",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
-    "whatwg-fetch": "^2.0.0"
+    "react-tap-event-plugin": "^2.0.1"
   },
   "devDependencies": {
+    "react-tap-event-plugin": "^2.0.1",
+    "whatwg-fetch": "^2.0.0",
+    "material-ui": "^0.17.0",
+    "bootstrap": "^3.3.7",
     "@types/lodash": "^4.14.44",
+    "@types/material-ui": "^0.16.51",
     "@types/node": "^6.0.53",
     "@types/react": "^0.14.55",
     "@types/react-dom": "^0.14.19",
@@ -53,8 +58,8 @@
   "author": "buhi",
   "license": "MIT",
   "dependencies": {
-    "ag-grid": "^8.0.1",
-    "ag-grid-react": "^8.0.1",
+    "ag-grid": "^8.1.1",
+    "ag-grid-react": "^8.1.0",
     "immutable": "^3.8.1",
     "react": "^15.4.2",
     "react-dom": "^15.4.2"

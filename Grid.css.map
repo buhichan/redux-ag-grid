@@ -1,7 +1,0 @@
-{
-"version": 3,
-"mappings": "AAEI,wCAAS;EACP,UAAU,EAAE,MAAM;EAClB,cAAc,EAAE,MAAM;AAExB,2DAA4B;EAC1B,WAAW,EAAE,KAAK;AAGlB,oEAAwB;EACtB,YAAY,EAAE,GAAG;AAGrB,kDAAmB;EACjB,WAAW,EAAE,IAAI",
-"sources": ["Grid.scss"],
-"names": [],
-"file": "Grid.css"
-}

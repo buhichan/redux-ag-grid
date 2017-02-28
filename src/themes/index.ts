@@ -2,6 +2,7 @@ import {Options} from "../Grid";
 import {GridApi} from "ag-grid"
 import * as React from "react"
 import {ActionInstance} from "../ActionClassFactory";
+import {ICellRendererReactComp} from "ag-grid-react/lib/interfaces";
 /**
  * Created by YS on 2016/11/16.
  */
@@ -18,15 +19,17 @@ export type GridRendererProps = {
 };
 
 export interface ITheme{
-    SelectFieldRenderer:(options:Options)=>React.StatelessComponent<any>|React.ComponentClass<any>
-    GridRenderer:React.StatelessComponent<GridRendererProps>|React.ComponentClass<GridRendererProps>
-    ActionCellRenderer:(actions:ActionInstance<any>[])=>React.StatelessComponent<any>|React.ComponentClass<any>
+    HeaderCheckboxRenderer:ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>,
+    CheckboxRenderer:ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>
+    SelectFieldRenderer:(options:Options)=>ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>
+    GridRenderer:React.ComponentClass<GridRendererProps>
+    ActionCellRenderer:(actions:ActionInstance<any>[])=>ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>
 }
 
 let theme = null;
 
 export function currentTheme(){return theme}
 
-export function setTheme(newTheme){
+export function setTheme(newTheme:ITheme){
     theme = newTheme
 }

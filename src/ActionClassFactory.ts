@@ -4,6 +4,7 @@
 "use strict";
 
 import {keyValueToQueryParams} from "./Utils"
+import {InstanceAction} from "./Grid";
 
 export interface RestfulActionDef<T> extends BaseActionDef<T>{
     path?:string,

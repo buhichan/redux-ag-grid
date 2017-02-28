@@ -12,6 +12,14 @@ import {createStore} from "redux"
 import {GridReducer,RestfulResource} from "../src"
 import {Map,fromJS} from "immutable"
 
+import getMuiTheme from "material-ui/styles/getMuiTheme"
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import "../src/themes/Material"
+require('react-tap-event-plugin')();
+
+const theme = getMuiTheme();
+
+
 let store = createStore((state,action)=>{
     let res = state?state:fromJS({
         people:[],
@@ -65,8 +73,10 @@ setStore(store);
 
 ReactDOM.render(
     (<div style={{height:"1000px"}} >
-        <ReduxAgGrid resource={resource as any} schema={schema} actions={actions} >
-            <AgGridReact />
-        </ReduxAgGrid>
+        <MuiThemeProvider muiTheme={theme}>
+            <ReduxAgGrid resource={resource as any} schema={schema} actions={actions} selectionStyle="checkbox">
+                <AgGridReact />
+            </ReduxAgGrid>
+        </MuiThemeProvider>
     </div>)
     ,document.getElementById('root'));

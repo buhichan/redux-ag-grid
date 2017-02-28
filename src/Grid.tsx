@@ -5,14 +5,13 @@
 import "ag-grid/dist/styles/ag-grid.css"
 import {Component} from "react"
 import * as React from "react"
-import {IGetRowsParams} from "ag-grid"
+import {IGetRowsParams, GridOptions, ColGroupDef} from "ag-grid"
 import {AbstractColDef,ColDef,GridApi,ColumnApi} from "ag-grid";
 import {RestfulResource} from "./RestfulResource"
 import {deepGetState, deepGet} from "./Utils";
 import {EnumFilter, DateFilter} from "./GridFilters";
 import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import {currentTheme, ITheme} from "./themes"
-import "./themes/Bootstrap"
 import {List} from "immutable";
 import {Store} from "redux"
 
@@ -64,7 +63,7 @@ export interface GridFieldSchema extends ColDef{
 
 export interface GridState<T>{
     quickFilterText?:string,
-    gridOptions?:any,
+    gridOptions?:GridOptions,
     themeRenderer:ITheme,
     selectAll?:boolean,
     models:List<T>,
@@ -87,13 +86,16 @@ export interface GridProps<T>{
     resource?:RestfulResource<T,any>,
     schema?:GridFieldSchema[],
     actions?:(InstanceAction<T>|StaticAction<T>|string)[],
-    gridOptions?:any,
+    gridOptions?:GridOptions,
     dispatch?:any,
     height?:number,
     serverSideFilter?:boolean,
     data?:T[] | List<T>
-    noSearch?:boolean
+    noSearch?:boolean,
+    selectionStyle?:"row"|"checkbox"
 }
+
+//todo: 1.3.0:做个selection的prop,表示用表头checkbox还是单击行来选择.
 
 function getValue(model,field){
     if(/\.|\[|\]/.test(field))
@@ -117,7 +119,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
     shouldComponentUpdate(nextProps:GridProps<T>,nextState:GridState<T>){
         if(this.props.schema !== nextProps.schema ||
             this.props.actions !== nextProps.actions ||
-            this.state.gridOptions.colDef !== nextState.gridOptions.colDef ||
+            this.state.gridOptions.columnDefs !== nextState.gridOptions.columnDefs ||
             this.state.staticActions !== nextState.staticActions
         ) return true;
         if(this.props.resource) { //resource mode
@@ -135,10 +137,6 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 suppressNoRowsOverlay:true,
                 rowData:[],
                 paginationPageSize:20,
-                style:{
-                    height:"100%",
-                    width: "100%"
-                },
                 rowHeight:40,
                 onGridReady:params=>{
                     this.gridApi=params.api;
@@ -150,8 +148,8 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 },
                 onColumnEverythingChanged:()=>window.innerWidth>=480&&this.gridApi&&this.gridApi.sizeColumnsToFit(),
                 rowSelection:"multiple",
-                enableSorting:"true",
-                enableFilter:"true",
+                enableSorting:true,
+                enableFilter:true,
                 enableColResize: true
             },
             themeRenderer:currentTheme(),
@@ -202,27 +200,49 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
     }
     onReady(schema){
         let {staticActions,rowActions} = this.getActions();
-        let columnDefs;
-        if(!schema||!schema.length)
-            columnDefs = [];
-        else if(rowActions.length)
-            columnDefs = schema.concat([{
-                headerName:"",
-                suppressFilter:true,
-                suppressMenu:true,
-                suppressSorting:true,
-                cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
-            }]);
-        else
-            columnDefs = schema;
         const gridOptions = Object.assign(this.state.gridOptions,{
             quickFilterText:this.state.quickFilterText,
-            columnDefs:columnDefs,
             context:{
                 getSelected:()=>this.gridApi.getSelectedRows(),
                 dispatch:this.props.dispatch
             },
         });
+        let columnDefs:ColDef[];
+        if(!schema||!schema.length)
+            columnDefs = [];
+        else {
+            if (rowActions.length)
+                columnDefs = schema.concat({
+                    headerName: "",
+                    suppressFilter: true,
+                    suppressMenu: true,
+                    suppressSorting: true,
+                    cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
+                });
+            else
+                columnDefs = schema;
+            if(this.props.selectionStyle === 'checkbox') {
+                //todo: if checkbox renderer is defined, use it, otherwise use ag-grid's default
+                // if(this.state.themeRenderer.CheckboxRenderer)
+                //     columnDefs.unshift({
+                //         cellRendererFramework: this.state.themeRenderer.CheckboxRenderer,
+                //         headerName: "",
+                //         suppressFilter: true,
+                //         suppressMenu: true,
+                //         suppressSorting: true,
+                //         headerComponentFramework: this.state.themeRenderer.CheckboxRenderer
+                //     });
+                Object.assign(columnDefs[0],{
+                    checkboxSelection:true,
+                    headerCheckboxSelection:true,
+                    headerCheckboxSelectionFilteredOnly:true
+                });
+                gridOptions.suppressRowClickSelection = true;
+            }else if(this.props.selectionStyle === 'row'){
+                gridOptions.suppressRowClickSelection = false;
+            }
+        }
+        gridOptions.columnDefs = columnDefs;
         if(this.props.resource) {
             //todo: server side filtering
             if (this.props.serverSideFilter) {
@@ -275,7 +295,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 //todo deep key not works with select/date
                 switch (column.type){
                     case "select":
-                        colDef['valueGetter']= function enumValueGetter({colDef,data}){
+                        colDef.valueGetter= function enumValueGetter({colDef,data}){
                             function getValueByName(entryValue){
                                 const i = options.findIndex(x=>x.value==entryValue);
                                 if(i<0) return null;
@@ -287,9 +307,9 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                             else
                                 return getValueByName(value)
                         };
-                        colDef['cellRendererFramework'] = this.state.themeRenderer.SelectFieldRenderer(options);
-                        colDef['_options'] = options;
-                        colDef['filterFramework'] = EnumFilter;
+                        colDef.cellRendererFramework= this.state.themeRenderer.SelectFieldRenderer(options);
+                        colDef['_options'] = options; //may be polluted ?
+                        colDef.filterFramework = EnumFilter;
                         break;
                     case "date":
                     case "datetime-local":
@@ -298,24 +318,24 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                             formatter = formatDate;
                         else
                             formatter = formatDateTime;
-                        colDef['valueGetter']= ({colDef,data})=>{
+                        colDef.valueGetter= ({colDef,data})=>{
                             const v = getValue(data,colDef.key);
                             return v?formatter.format(new Date(v)): ""
                         };
-                        colDef['filterFramework'] = DateFilter;
+                        colDef.filterFramework = DateFilter;
                         break;
                     case "number":
-                        colDef['valueGetter'] = ({colDef,data})=>formatNumber.format(getValue(data,colDef.key));
+                        colDef.valueGetter = ({colDef,data})=>formatNumber.format(getValue(data,colDef.key));
                         break;
                     case "checkbox":
-                        colDef['valueGetter'] = ({colDef,data})=>getValue(data,colDef.key)?"是":"否";
+                        colDef.valueGetter = ({colDef,data})=>getValue(data,colDef.key)?"是":"否";
                         break;
                     case "group":
-                        colDef['children'] = children;
-                        colDef['marryChildren'] = true;
+                        (colDef as ColGroupDef).children = children;
+                        (colDef as ColGroupDef).marryChildren = true;
                         break;
                     default:
-                        colDef['field']= column.key && column.key.replace(/\[(\d+)\]/g,".$1");
+                        colDef.field= column.key && column.key.replace(/\[(\d+)\]/g,".$1");
                 }
                 return colDef;
             };
@@ -331,7 +351,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         }))
     }
     getActions(){
-        let staticActions:ActionInstance<T>[] = [];
+        let staticActions:StaticAction<T>[] = [];
         let rowActions:ActionInstance<T>[] = [];
         let restResource = this.props.resource as RestfulResource<T,any>;
         if(this.props.actions)
@@ -349,9 +369,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                         rowActions.push(restResource.actions[action]);
                 } else{
                     const actionInst = action as StaticAction<T>;
-                    actionInst.call['isStatic'] = actionInst.isStatic;
-                    actionInst.call['enabled'] = actionInst.enabled;
-                    actionInst.call['displayName'] = actionInst.displayName;
+                    Object.assign(actionInst.call,actionInst);
                     if(actionInst.isStatic)
                         staticActions.push(actionInst.call as any);
                     else
@@ -373,7 +391,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         if(!this.props.serverSideFilter && this.props.resource)
             gridOptions['rowData'] = this.state.models.toArray();
         else if(this.props.data)
-            gridOptions['rowData'] = this.props.data;
+            gridOptions['rowData'] = this.props.data as T[];
         let GridRenderer = this.state.themeRenderer.GridRenderer;
         const AgGridCopy = React.cloneElement(AgGrid,Object.assign(gridOptions,AgGrid.props));
         return <GridRenderer
