@@ -1,0 +1,11 @@
+.redux-ag-grid .theme-bootstrap .ag-cell {
+  text-align: center;
+  vertical-align: center; }
+.redux-ag-grid .theme-bootstrap .ag-header-cell-menu-button {
+  margin-left: -15px; }
+.redux-ag-grid .theme-bootstrap .btn-actions .btn:not(:last-of-type) {
+  margin-right: 5px; }
+.redux-ag-grid .theme-bootstrap .ag-body-container {
+  line-height: 30px; }
+
+/*# sourceMappingURL=Grid.css.map */

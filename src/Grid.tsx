@@ -232,10 +232,13 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                 //         suppressSorting: true,
                 //         headerComponentFramework: this.state.themeRenderer.CheckboxRenderer
                 //     });
-                Object.assign(columnDefs[0],{
-                    checkboxSelection:true,
-                    headerCheckboxSelection:true,
-                    headerCheckboxSelectionFilteredOnly:true
+                columnDefs.unshift({
+                    checkboxSelection: true,
+                    valueGetter:()=>"",
+                    headerName:"",
+                    width:62,
+                    headerCheckboxSelection: true,
+                    headerCheckboxSelectionFilteredOnly: true
                 });
                 gridOptions.suppressRowClickSelection = true;
             }else if(this.props.selectionStyle === 'row'){

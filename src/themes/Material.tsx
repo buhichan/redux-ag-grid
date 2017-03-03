@@ -84,11 +84,6 @@ setTheme({
                 <div className="row" style={{padding:"15px 0"}}>
                     <div className="col-xs-12 col-md-9" style={{zIndex:1}}>
                         {
-                            this.props.actions.some(x=>x.useSelection) ? <FlatButton style={{margin:'0 5px 5px 0'}} onClick={this.props.onSelectAll}>
-                                    全选/取消
-                                </FlatButton> :null
-                        }
-                        {
                             this.props.actions.map((action, i)=>{
                                 if(action.enabled && !action.enabled()) return null;
                                 else
