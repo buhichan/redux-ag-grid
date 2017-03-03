@@ -65,6 +65,7 @@ export interface GridProps<T> {
     data?: T[] | List<T>;
     noSearch?: boolean;
     selectionStyle?: "row" | "checkbox";
+    actionCellProps?: any;
 }
 export declare function setStore(store: any): void;
 export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {

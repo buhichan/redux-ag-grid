@@ -1,6 +1,6 @@
 {
   "name": "redux-ag-grid",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "a react component on top of ag-grid, to use redux",
   "main": "index.js",
   "scripts": {
