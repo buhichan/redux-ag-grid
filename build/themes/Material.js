@@ -97,14 +97,12 @@ _1.setTheme({
             };
             return React.createElement("div", { className: "redux-ag-grid ag-material " },
                 React.createElement("div", { className: "row", style: { padding: "15px 0" } },
-                    React.createElement("div", { className: "col-xs-12 col-md-9", style: { zIndex: 1 } },
-                        this.props.actions.some(function (x) { return x.useSelection; }) ? React.createElement(FlatButton_1.default, { style: { margin: '0 5px 5px 0' }, onClick: this.props.onSelectAll }, "\u5168\u9009/\u53D6\u6D88") : null,
-                        this.props.actions.map(function (action, i) {
-                            if (action.enabled && !action.enabled())
-                                return null;
-                            else
-                                return React.createElement(RaisedButton_1.default, __assign({ style: { margin: '0 5px 5px 0' }, key: i }, buttonProps, { onClick: function (e) { return action(_this.props.gridApi.getSelectedRows(), e); } }), action.displayName);
-                        })),
+                    React.createElement("div", { className: "col-xs-12 col-md-9", style: { zIndex: 1 } }, this.props.actions.map(function (action, i) {
+                        if (action.enabled && !action.enabled())
+                            return null;
+                        else
+                            return React.createElement(RaisedButton_1.default, __assign({ style: { margin: '0 5px 5px 0' }, key: i }, buttonProps, { onClick: function (e) { return action(_this.props.gridApi.getSelectedRows(), e); } }), action.displayName);
+                    })),
                     React.createElement("div", { className: "col-xs-12 col-md-3" }, this.props.noSearch ||
                         React.createElement(TextField_1.default, { fullWidth: true, style: { marginTop: "-39px", top: "9px" }, name: "quick-filter", floatingLabelText: "搜索...", onChange: function (e) {
                                 var value = e.target['value'];

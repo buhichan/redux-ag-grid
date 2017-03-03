@@ -170,8 +170,11 @@ var Grid = (function (_super) {
                 //         suppressSorting: true,
                 //         headerComponentFramework: this.state.themeRenderer.CheckboxRenderer
                 //     });
-                Object.assign(columnDefs[0], {
+                columnDefs.unshift({
                     checkboxSelection: true,
+                    valueGetter: function () { return ""; },
+                    headerName: "",
+                    width: 62,
                     headerCheckboxSelection: true,
                     headerCheckboxSelectionFilteredOnly: true
                 });
