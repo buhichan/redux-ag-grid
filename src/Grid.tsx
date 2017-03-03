@@ -92,7 +92,8 @@ export interface GridProps<T>{
     serverSideFilter?:boolean,
     data?:T[] | List<T>
     noSearch?:boolean,
-    selectionStyle?:"row"|"checkbox"
+    selectionStyle?:"row"|"checkbox",
+    actionCellProps?:any
 }
 
 //todo: 1.3.0:做个selection的prop,表示用表头checkbox还是单击行来选择.
@@ -217,7 +218,8 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     suppressFilter: true,
                     suppressMenu: true,
                     suppressSorting: true,
-                    cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions)
+                    cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions),
+                    ...this.props.actionCellProps||{}
                 });
             else
                 columnDefs = schema;
