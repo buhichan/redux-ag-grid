@@ -38,3 +38,5 @@ export declare class EnumFilter extends React.Component<any, any> {
     setModel(model: any): void;
     onChange(): void;
 }
+export declare function setFilter(type: any, component: any): void;
+export declare function getFilter(type: any): any;

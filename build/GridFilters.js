@@ -116,4 +116,17 @@ var EnumFilter = (function (_super) {
     return EnumFilter;
 }(React.Component));
 exports.EnumFilter = EnumFilter;
+var Filters = {
+    'select': EnumFilter,
+    'date': DateFilter,
+    'datetime-local': DateFilter
+};
+function setFilter(type, component) {
+    Filters[type] = component;
+}
+exports.setFilter = setFilter;
+function getFilter(type) {
+    return Filters[type];
+}
+exports.getFilter = getFilter;
 //# sourceMappingURL=GridFilters.js.map

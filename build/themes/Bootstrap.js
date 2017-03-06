@@ -11,7 +11,7 @@ var React = require("react");
 require("ag-grid/dist/styles/theme-bootstrap.css");
 var index_1 = require("./index");
 index_1.setTheme({
-    HeaderCheckboxRenderer: (function (_super) {
+    HeaderSelectionCheckboxRenderer: (function (_super) {
         __extends(HeaderCheckboxCell, _super);
         function HeaderCheckboxCell() {
             return _super !== null && _super.apply(this, arguments) || this;
@@ -21,7 +21,7 @@ index_1.setTheme({
         };
         return HeaderCheckboxCell;
     }(React.PureComponent)),
-    CheckboxRenderer: (function (_super) {
+    SelectionCheckboxRenderer: (function (_super) {
         __extends(CheckboxCell, _super);
         function CheckboxCell() {
             return _super !== null && _super.apply(this, arguments) || this;

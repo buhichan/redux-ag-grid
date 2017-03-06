@@ -4,6 +4,11 @@ export interface RestfulActionDef<T> extends BaseActionDef<T> {
     method?: string;
     params?: (data: T | T[]) => any;
     data?: (data: T | T[]) => any;
+    /**
+     * @deprecated
+     * @param data
+     * @param res
+     */
     then?: (data: T | T[], res: any) => any;
     cacheTime?: number;
 }

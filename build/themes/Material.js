@@ -24,7 +24,7 @@ var FlatButton_1 = require("material-ui/FlatButton");
 var Checkbox_1 = require("material-ui/Checkbox");
 require("ag-grid/dist/styles/theme-material.css");
 _1.setTheme({
-    CheckboxRenderer: (function (_super) {
+    SelectionCheckboxRenderer: (function (_super) {
         __extends(CheckboxCell, _super);
         function CheckboxCell() {
             return _super !== null && _super.apply(this, arguments) || this;
@@ -37,7 +37,7 @@ _1.setTheme({
         };
         return CheckboxCell;
     }(React.PureComponent)),
-    HeaderCheckboxRenderer: (function (_super) {
+    HeaderSelectionCheckboxRenderer: (function (_super) {
         __extends(HeaderCheckboxCell, _super);
         function HeaderCheckboxCell() {
             return _super !== null && _super.apply(this, arguments) || this;

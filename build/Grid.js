@@ -158,7 +158,7 @@ var Grid = (function (_super) {
             columnDefs = [];
         else {
             if (rowActions.length)
-                columnDefs = schema.concat(__assign({ headerName: "", suppressFilter: true, suppressMenu: true, suppressSorting: true, cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions) }, this.props.actionCellProps || {}));
+                columnDefs = schema.concat(__assign({ headerName: "", suppressFilter: true, suppressMenu: true, suppressSorting: true, cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions) }, this.props.actionColDef || {}));
             else
                 columnDefs = schema;
             if (this.props.selectionStyle === 'checkbox') {
@@ -260,7 +260,6 @@ var Grid = (function (_super) {
                         };
                         colDef.cellRendererFramework = _this.state.themeRenderer.SelectFieldRenderer(options);
                         colDef['_options'] = options; //may be polluted ?
-                        colDef.filterFramework = GridFilters_1.EnumFilter;
                         break;
                     case "date":
                     case "datetime-local":
@@ -274,7 +273,6 @@ var Grid = (function (_super) {
                             var v = getValue(data, colDef.key);
                             return v ? formatter_1.format(new Date(v)) : "";
                         };
-                        colDef.filterFramework = GridFilters_1.DateFilter;
                         break;
                     case "number":
                         colDef.valueGetter = function (_a) {
@@ -295,6 +293,9 @@ var Grid = (function (_super) {
                     default:
                         colDef.field = column.key && column.key.replace(/\[(\d+)\]/g, ".$1");
                 }
+                var filter = GridFilters_1.getFilter(column.type);
+                if (filter)
+                    colDef.filterFramework = filter;
                 return colDef;
             };
             if (column.options && typeof column.options === 'function') {
