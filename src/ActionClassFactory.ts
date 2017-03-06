@@ -11,12 +11,6 @@ export interface RestfulActionDef<T> extends BaseActionDef<T>{
     method?:string,
     params?:(data:T|T[])=>any,
     data?:(data:T|T[])=>any,
-    /**
-     * @deprecated
-     * @param data
-     * @param res
-     */
-    then?:(data:T|T[], res:any)=>any,
     cacheTime?: number //seconds
 }
 
@@ -94,24 +88,7 @@ export function RestfulActionClassFactory<T>(url:string){
                         LastCachedTime: Date.now()
                     };
             }
-            if(actionDef.then)
-                return promise.then(res=>{
-                    const actionResult = actionDef.then(data,res);
-                    if(actionResult!==undefined) // then it should be regarded as a model change
-                        dispatch({
-                            type:"grid/model/change",
-                            value:{
-                                modelPath,
-                                key:idGetter,
-                                data:{
-                                    id:idGetter(data),
-                                    changes:actionResult
-                                }
-                            }
-                        });
-                    return res;
-                });
-            else return promise;
+            return promise;
         };
         action.enabled = actionDef.enabled;
         action.isStatic = action.useSelected = actionDef.isStatic;
