@@ -9,7 +9,7 @@ import {IGetRowsParams, GridOptions, ColGroupDef} from "ag-grid"
 import {AbstractColDef,ColDef,GridApi,ColumnApi} from "ag-grid";
 import {RestfulResource} from "./RestfulResource"
 import {deepGetState, deepGet} from "./Utils";
-import {EnumFilter, DateFilter} from "./GridFilters";
+import {getFilter} from "./GridFilters";
 import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import {currentTheme, ITheme} from "./themes"
 import {List} from "immutable";
@@ -93,7 +93,7 @@ export interface GridProps<T>{
     data?:T[] | List<T>
     noSearch?:boolean,
     selectionStyle?:"row"|"checkbox",
-    actionCellProps?:any
+    actionColDef?:any
 }
 
 //todo: 1.3.0:做个selection的prop,表示用表头checkbox还是单击行来选择.
@@ -219,7 +219,7 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     suppressMenu: true,
                     suppressSorting: true,
                     cellRendererFramework: this.state.themeRenderer.ActionCellRenderer(rowActions),
-                    ...this.props.actionCellProps||{}
+                    ...this.props.actionColDef||{}
                 });
             else
                 columnDefs = schema;
@@ -314,7 +314,6 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                         };
                         colDef.cellRendererFramework= this.state.themeRenderer.SelectFieldRenderer(options);
                         colDef['_options'] = options; //may be polluted ?
-                        colDef.filterFramework = EnumFilter;
                         break;
                     case "date":
                     case "datetime-local":
@@ -327,7 +326,6 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                             const v = getValue(data,colDef.key);
                             return v?formatter.format(new Date(v)): ""
                         };
-                        colDef.filterFramework = DateFilter;
                         break;
                     case "number":
                         colDef.valueGetter = ({colDef,data})=>formatNumber.format(getValue(data,colDef.key));
@@ -342,6 +340,9 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
                     default:
                         colDef.field= column.key && column.key.replace(/\[(\d+)\]/g,".$1");
                 }
+                const filter = getFilter(column.type);
+                if(filter)
+                    colDef.filterFramework = filter;
                 return colDef;
             };
             if (column.options && typeof column.options === 'function') {

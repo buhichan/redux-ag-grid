@@ -19,8 +19,8 @@ export type GridRendererProps = {
 };
 
 export interface ITheme{
-    HeaderCheckboxRenderer:ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>,
-    CheckboxRenderer:ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>
+    HeaderSelectionCheckboxRenderer:ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>,
+    SelectionCheckboxRenderer:ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>
     SelectFieldRenderer:(options:Options)=>ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>
     GridRenderer:React.ComponentClass<GridRendererProps>
     ActionCellRenderer:(actions:ActionInstance<any>[])=>ICellRendererReactComp & React.ComponentClass<ICellRendererReactComp>

@@ -12,7 +12,7 @@ import Checkbox from 'material-ui/Checkbox'
 import "ag-grid/dist/styles/theme-material.css"
 import {ICellRendererParams, IHeaderParams} from "ag-grid";
 setTheme({
-    CheckboxRenderer:class CheckboxCell extends React.PureComponent<ICellRendererParams,any>{
+    SelectionCheckboxRenderer:class CheckboxCell extends React.PureComponent<ICellRendererParams,any>{
         refresh(){}
         render(){
             return <div>
@@ -21,7 +21,7 @@ setTheme({
             </div>
         }
     },
-    HeaderCheckboxRenderer:class HeaderCheckboxCell extends React.PureComponent<IHeaderParams,any>{
+    HeaderSelectionCheckboxRenderer:class HeaderCheckboxCell extends React.PureComponent<IHeaderParams,any>{
         refresh(){}
         toggle(){
 

@@ -7,7 +7,6 @@ import {IDoesFilterPassParams, IFilterParams} from "ag-grid";
 import * as React from "react"
 import {deepGet} from "./Utils";
 
-
 export class DateFilter extends React.Component<any,any>{
     private params:IFilterParams;
     to:Date;
@@ -124,4 +123,17 @@ export class EnumFilter extends React.Component<any,any>{
             this.selected.push(this.select.selectedOptions[i].value);
         this.params.filterChangedCallback();
     }
+}
+
+const Filters = {
+    'select':EnumFilter,
+    'date':DateFilter,
+    'datetime-local':DateFilter
+};
+
+export function setFilter(type,component){
+    Filters[type] = component;
+}
+export function getFilter(type){
+    return Filters[type]
 }

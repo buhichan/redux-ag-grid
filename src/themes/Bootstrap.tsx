@@ -6,12 +6,12 @@ import "ag-grid/dist/styles/theme-bootstrap.css"
 import {setTheme, GridRendererProps} from "./index";
 
 setTheme({
-    HeaderCheckboxRenderer:class HeaderCheckboxCell extends React.PureComponent<any,any>{
+    HeaderSelectionCheckboxRenderer:class HeaderCheckboxCell extends React.PureComponent<any,any>{
         render(){
             return <div>bootstrap主题的不需要自定义checkbox,请在coldef里加上headerCheckboxSelection:true代替</div>
         }
     },
-    CheckboxRenderer:class CheckboxCell extends React.PureComponent<any,any>{
+    SelectionCheckboxRenderer:class CheckboxCell extends React.PureComponent<any,any>{
         render(){
             return <div>bootstrap主题的不需要自定义checkbox,请在coldef里加上checkboxSelection:true代替</div>
         }
