@@ -93,7 +93,7 @@ export function setStore(store){
     Store = store;
 }
 
-export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
+export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
     gridApi:GridApi;
     columnApi:ColumnApi;
     shouldComponentUpdate(nextProps:GridProps<T>,nextState:GridState<T>){
@@ -394,5 +394,3 @@ export class Grid<T> extends Component<GridProps<T>,GridState<T>>{
         </GridRenderer>;
     }
 }
-
-const a = Grid as new()=>Grid<number>;
