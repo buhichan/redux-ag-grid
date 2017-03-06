@@ -46,25 +46,7 @@ function RestfulActionClassFactory(url) {
                         LastCachedTime: Date.now()
                     };
             }
-            if (actionDef.then)
-                return promise.then(function (res) {
-                    var actionResult = actionDef.then(data, res);
-                    if (actionResult !== undefined)
-                        dispatch({
-                            type: "grid/model/change",
-                            value: {
-                                modelPath: modelPath,
-                                key: idGetter,
-                                data: {
-                                    id: idGetter(data),
-                                    changes: actionResult
-                                }
-                            }
-                        });
-                    return res;
-                });
-            else
-                return promise;
+            return promise;
         };
         action.enabled = actionDef.enabled;
         action.isStatic = action.useSelected = actionDef.isStatic;

@@ -22,21 +22,6 @@ var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
 var redux_1 = require("redux");
-var formatDate = new Intl.DateTimeFormat(['zh-CN'], {
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-});
-var formatDateTime = new Intl.DateTimeFormat(['zh-CN'], {
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-});
 //todo: 1.3.0:做个selection的prop,表示用表头checkbox还是单击行来选择.
 function getValue(model, field) {
     if (/\.|\[|\]/.test(field))
@@ -44,9 +29,6 @@ function getValue(model, field) {
     else
         return model[field];
 }
-var formatNumber = new Intl.NumberFormat([], {
-    currency: "CNY"
-});
 var Store;
 function setStore(store) {
     redux_1.Store = store;
@@ -262,22 +244,30 @@ var Grid = (function (_super) {
                         colDef['_options'] = options; //may be polluted ?
                         break;
                     case "date":
-                    case "datetime-local":
-                        var formatter_1;
-                        if (column.type === "date")
-                            formatter_1 = formatDate;
-                        else
-                            formatter_1 = formatDateTime;
                         colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             var v = getValue(data, colDef.key);
-                            return v ? formatter_1.format(new Date(v)) : "";
+                            return v ? new Date(v).toLocaleDateString().replace(/\//g, '-') : "";
+                        };
+                        break;
+                    case "time":
+                        colDef.valueGetter = function (_a) {
+                            var colDef = _a.colDef, data = _a.data;
+                            var v = getValue(data, colDef.key);
+                            return v ? new Date(v).toLocaleTimeString().replace(/\//g, '-') : "";
+                        };
+                        break;
+                    case "datetime-local":
+                        colDef.valueGetter = function (_a) {
+                            var colDef = _a.colDef, data = _a.data;
+                            var v = getValue(data, colDef.key);
+                            return v ? new Date(v).toLocaleString().replace(/\//g, '-') : "";
                         };
                         break;
                     case "number":
                         colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
-                            return formatNumber.format(getValue(data, colDef.key));
+                            return Number(getValue(data, colDef.key)).toLocaleString();
                         };
                         break;
                     case "checkbox":
