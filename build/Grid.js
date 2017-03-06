@@ -34,9 +34,9 @@ function setStore(store) {
     redux_1.Store = store;
 }
 exports.setStore = setStore;
-var Grid = (function (_super) {
-    __extends(Grid, _super);
-    function Grid(props, context) {
+var ReduxAgGrid = (function (_super) {
+    __extends(ReduxAgGrid, _super);
+    function ReduxAgGrid(props, context) {
         var _this = _super.call(this, props) || this;
         _this.onResize = function () {
             if (_this.pendingResize)
@@ -78,7 +78,7 @@ var Grid = (function (_super) {
         Object.assign(_this.state.gridOptions, props.gridOptions);
         return _this;
     }
-    Grid.prototype.shouldComponentUpdate = function (nextProps, nextState) {
+    ReduxAgGrid.prototype.shouldComponentUpdate = function (nextProps, nextState) {
         if (this.props.schema !== nextProps.schema ||
             this.props.actions !== nextProps.actions ||
             this.state.gridOptions.columnDefs !== nextState.gridOptions.columnDefs ||
@@ -90,11 +90,11 @@ var Grid = (function (_super) {
         else
             return this.props.data !== nextProps.data;
     };
-    Grid.prototype.componentDidMount = function () {
+    ReduxAgGrid.prototype.componentDidMount = function () {
         if (this.props.resource)
             this.unsubscriber = redux_1.Store.subscribe(this.handleStoreChange.bind(this));
     };
-    Grid.prototype.handleStoreChange = function () {
+    ReduxAgGrid.prototype.handleStoreChange = function () {
         if (this.props.resource) {
             var models = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource._modelPath));
             this.setState({
@@ -102,14 +102,14 @@ var Grid = (function (_super) {
             });
         }
     };
-    Grid.prototype.componentWillUnmount = function () {
+    ReduxAgGrid.prototype.componentWillUnmount = function () {
         this.isUnmounting = true;
         if (this.props.gridApi)
             this.props.gridApi(null);
         this.unsubscriber && this.unsubscriber();
         window.removeEventListener('resize', this.onResize);
     };
-    Grid.prototype.componentWillMount = function () {
+    ReduxAgGrid.prototype.componentWillMount = function () {
         var _this = this;
         if (!this.props.resource && !this.props.data) {
             throw new Error("请使用ResourceAdapterService构造一个Resource或传入data");
@@ -125,7 +125,7 @@ var Grid = (function (_super) {
             _this.onReady(parsed);
         });
     };
-    Grid.prototype.onReady = function (schema) {
+    ReduxAgGrid.prototype.onReady = function (schema) {
         var _this = this;
         var _a = this.getActions(), staticActions = _a.staticActions, rowActions = _a.rowActions;
         var gridOptions = Object.assign(this.state.gridOptions, {
@@ -202,20 +202,20 @@ var Grid = (function (_super) {
             gridOptions: gridOptions,
         });
     };
-    Grid.prototype.setState = function (P, c) {
+    ReduxAgGrid.prototype.setState = function (P, c) {
         if (this.isUnmounting)
             return;
         else
             _super.prototype.setState.call(this, P, c);
     };
-    Grid.prototype.componentWillReceiveProps = function (newProps) {
+    ReduxAgGrid.prototype.componentWillReceiveProps = function (newProps) {
         var _this = this;
         if (newProps.schema !== this.props.schema)
             this.parseSchema(newProps.schema).then(function (parsed) {
                 _this.onReady(parsed);
             });
     };
-    Grid.prototype.parseSchema = function (schema) {
+    ReduxAgGrid.prototype.parseSchema = function (schema) {
         var _this = this;
         return Promise.all(schema.map(function (column) {
             var syncParseField = function (options, children) {
@@ -301,7 +301,7 @@ var Grid = (function (_super) {
                 return Promise.resolve(syncParseField(column.options));
         }));
     };
-    Grid.prototype.getActions = function () {
+    ReduxAgGrid.prototype.getActions = function () {
         var _this = this;
         var staticActions = [];
         var rowActions = [];
@@ -335,7 +335,7 @@ var Grid = (function (_super) {
             rowActions: rowActions
         };
     };
-    Grid.prototype.render = function () {
+    ReduxAgGrid.prototype.render = function () {
         var AgGrid = React.Children.only(this.props.children);
         var _a = this.state, staticActions = _a.staticActions, gridOptions = _a.gridOptions;
         if (!this.props.serverSideFilter && this.props.resource)
@@ -346,8 +346,7 @@ var Grid = (function (_super) {
         var AgGridCopy = React.cloneElement(AgGrid, Object.assign(gridOptions, AgGrid.props));
         return React.createElement(GridRenderer, { noSearch: this.props.noSearch, actions: staticActions, onSelectAll: this.onSelectAll, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height }, AgGridCopy);
     };
-    return Grid;
+    return ReduxAgGrid;
 }(react_1.Component));
-exports.Grid = Grid;
-var a = Grid;
+exports.ReduxAgGrid = ReduxAgGrid;
 //# sourceMappingURL=Grid.js.map

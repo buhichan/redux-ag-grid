@@ -68,7 +68,7 @@ export interface GridProps<T> {
     actionColDef?: any;
 }
 export declare function setStore(store: any): void;
-export declare class Grid<T> extends Component<GridProps<T>, GridState<T>> {
+export declare class ReduxAgGrid<T> extends Component<GridProps<T>, GridState<T>> {
     gridApi: GridApi;
     columnApi: ColumnApi;
     shouldComponentUpdate(nextProps: GridProps<T>, nextState: GridState<T>): boolean;
