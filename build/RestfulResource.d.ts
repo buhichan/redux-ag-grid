@@ -28,12 +28,9 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         apiType?: APIType;
         fetch?: typeof window.fetch;
         mapResToData?;
-        actions?: (Actions & {
-            [actionName: string]: RestfulActionDef<Model>;
-        }) | Array<RestfulActionDef<Model> & {
-            name?: string;
-            key?: string;
-        }>;
+        actions?: (Array<RestfulActionDef<Model> & {
+            key: keyof Actions;
+        }>);
         cacheTime?: number;
     });
     _mapFilterToQuery: (filter: GridFilter) => {

@@ -286,6 +286,8 @@ var ReduxAgGrid = (function (_super) {
                 var filter = GridFilters_1.getFilter(column.type);
                 if (filter)
                     colDef.filterFramework = filter;
+                if (column.key)
+                    colDef.colId = column.key;
                 return colDef;
             };
             if (column.options && typeof column.options === 'function') {

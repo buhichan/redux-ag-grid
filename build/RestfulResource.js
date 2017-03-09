@@ -102,8 +102,8 @@ var RestfulResource = (function () {
             this.actions = {};
             if (actions instanceof Array)
                 actions.forEach(function (actionDef) {
-                    _this.actions[actionDef.key || actionDef.name] =
-                        MakeAction_1(actionDef.name, actionDef, _this._gridName, _this._config, function () { return _this._query; }, _this._idGetter, modelPath, fetch, _this._mapResToData, _this._dispatch);
+                    _this.actions[actionDef.key] =
+                        MakeAction_1(actionDef.key, actionDef, _this._gridName, _this._config, function () { return _this._query; }, _this._idGetter, modelPath, fetch, _this._mapResToData, _this._dispatch);
                 });
             else
                 Object.keys(actions).forEach(function (actionName) {
