@@ -325,6 +325,8 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                 const filter = getFilter(column.type);
                 if(filter)
                     colDef.filterFramework = filter;
+                if(column.key)
+                    colDef.colId = column.key;
                 return colDef;
             };
             if (column.options && typeof column.options === 'function') {

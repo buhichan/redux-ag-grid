@@ -50,7 +50,9 @@ let actions = [{
     useSelected:false,
 },"httpAction"];
 
-let resource = new RestfulResource({
+let resource= new RestfulResource<any,{
+    httpAction:any
+}>({
     url:"http://192.168.150.211:3000/api/people",
     modelPath:['people'],
     dispatch:store.dispatch.bind(store),

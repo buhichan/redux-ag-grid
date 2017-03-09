@@ -69,7 +69,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         apiType?:APIType,
         fetch?:typeof window.fetch,
         mapResToData?
-        actions?:(Actions & {[actionName:string]:RestfulActionDef<Model>})|Array<RestfulActionDef<Model>&{name?:string,key?:string}>,
+        actions?:(Array<RestfulActionDef<Model>&{key:keyof Actions}>),
         cacheTime?:number
     }) {
         if (url.substr(-1) === '/') url=url.slice(0,-1);
@@ -160,8 +160,8 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             this.actions = {} as any;
             if(actions instanceof Array)
                 actions.forEach(actionDef=>{
-                    this.actions[actionDef.key||actionDef.name]=
-                        MakeAction(actionDef.name,actionDef,this._gridName,this._config,()=>this._query,this._idGetter,modelPath,fetch,this._mapResToData,this._dispatch)
+                    this.actions[actionDef.key]=
+                        MakeAction(actionDef.key,actionDef,this._gridName,this._config,()=>this._query,this._idGetter,modelPath,fetch,this._mapResToData,this._dispatch)
                 });
             else
                 Object.keys(actions).forEach((actionName)=> {
