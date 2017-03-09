@@ -29,11 +29,18 @@ function getValue(model, field) {
     else
         return model[field];
 }
+function defaultValueGetter(_a) {
+    var colDef = _a.colDef, data = _a.data;
+    return getValue(data, colDef.key);
+}
 var Store;
 function setStore(store) {
     redux_1.Store = store;
 }
 exports.setStore = setStore;
+var timeFormatOptions = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
+var dateFormatOptions = { year: "numeric", month: "2-digit", day: "2-digit" };
+var datetimeFormatOptions = { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
 var ReduxAgGrid = (function (_super) {
     __extends(ReduxAgGrid, _super);
     function ReduxAgGrid(props, context) {
@@ -247,27 +254,29 @@ var ReduxAgGrid = (function (_super) {
                         colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             var v = getValue(data, colDef.key);
-                            return v ? new Date(v).toLocaleDateString().replace(/\//g, '-') : "";
+                            return v ? new Date(v).toLocaleDateString(undefined, dateFormatOptions).replace(/\//g, '-') : "";
                         };
                         break;
                     case "time":
                         colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             var v = getValue(data, colDef.key);
-                            return v ? new Date(v).toLocaleTimeString().replace(/\//g, '-') : "";
+                            return v ? new Date(v).toLocaleTimeString(undefined, timeFormatOptions) : "";
                         };
                         break;
+                    case "datetime":
                     case "datetime-local":
                         colDef.valueGetter = function (_a) {
                             var colDef = _a.colDef, data = _a.data;
                             var v = getValue(data, colDef.key);
-                            return v ? new Date(v).toLocaleString().replace(/\//g, '-') : "";
+                            return v ? new Date(v).toLocaleString(undefined, datetimeFormatOptions).replace(/\//g, '-') : "";
                         };
                         break;
                     case "number":
-                        colDef.valueGetter = function (_a) {
-                            var colDef = _a.colDef, data = _a.data;
-                            return Number(getValue(data, colDef.key)).toLocaleString();
+                        colDef.valueGetter = defaultValueGetter;
+                        colDef.cellRenderer = function (_a) {
+                            var value = _a.value;
+                            return Number(value).toLocaleString();
                         };
                         break;
                     case "checkbox":

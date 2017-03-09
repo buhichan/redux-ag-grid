@@ -23,7 +23,7 @@ export interface GridFilter {
         reverse: boolean;
     };
 }
-export declare type columnType = "text" | "number" | "select" | "checkbox" | "date" | "datetime-local" | "group" | "time" | null;
+export declare type columnType = "text" | "number" | "select" | "checkbox" | "date" | "datetime-local" | "datetime" | "group" | "time" | null;
 export declare type Options = {
     name: string;
     value: string | number;
