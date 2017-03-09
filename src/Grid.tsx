@@ -32,7 +32,7 @@ export interface GridFilter{
     }
 }
 
-export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|"group"|"time"|null
+export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|"datetime"|"group"|"time"|null;
 export type Options = {name:string,value:string|number}[]
 export type AsyncOptions = ()=>Promise<Options>
 
@@ -86,12 +86,19 @@ function getValue(model,field){
         return deepGet(model,field);
     else return model[field]
 }
+function defaultValueGetter({colDef,data}){
+    return getValue(data,colDef.key);
+}
 
 let Store:Store<any>;
 
 export function setStore(store){
     Store = store;
 }
+
+const timeFormatOptions = {hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false};
+const dateFormatOptions = {year:"numeric",month:"2-digit",day:"2-digit"};
+const datetimeFormatOptions = {year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false};
 
 export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
     gridApi:GridApi;
@@ -297,20 +304,22 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                     case "date":
                         colDef.valueGetter= ({colDef,data})=>{
                             const v = getValue(data,colDef.key);
-                            return v?new Date(v).toLocaleDateString().replace(/\//g,'-'): ""
+                            return v?new Date(v).toLocaleDateString(undefined,dateFormatOptions).replace(/\//g,'-'): ""
                         };break;
                     case "time":
                         colDef.valueGetter= ({colDef,data})=>{
                             const v = getValue(data,colDef.key);
-                            return v?new Date(v).toLocaleTimeString().replace(/\//g,'-'): ""
+                            return v?new Date(v).toLocaleTimeString(undefined,timeFormatOptions): ""
                         };break;
+                    case "datetime":
                     case "datetime-local":
                         colDef.valueGetter= ({colDef,data})=>{
                             const v = getValue(data,colDef.key);
-                            return v?new Date(v).toLocaleString().replace(/\//g,'-'): ""
+                            return v?new Date(v).toLocaleString(undefined,datetimeFormatOptions).replace(/\//g,'-'): ""
                         };break;
                     case "number":
-                        colDef.valueGetter = ({colDef,data})=>Number(getValue(data,colDef.key)).toLocaleString();
+                        colDef.valueGetter = defaultValueGetter;
+                        colDef.cellRenderer = ({value})=>Number(value).toLocaleString();
                         break;
                     case "checkbox":
                         colDef.valueGetter = ({colDef,data})=>getValue(data,colDef.key)?"是":"否";

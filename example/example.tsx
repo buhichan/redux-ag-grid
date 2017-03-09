@@ -35,7 +35,8 @@ let schema=[
     {key:'name',label:"名字",type:"input"},
     {key:'age',label:"年龄",type:'input',required:true},
     {key:'gender',label:"性别",type:'select',options:[{name:"男",value:1},{name:"女",value:0}]},
-    {key:"birthDay",label:"生日",type:"date"}
+    {key:"birthDay",label:"生日",type:"date"},
+    {key:"okane",label:"￥",type:"number"}
 ] as GridFieldSchema[];
 
 let actions = [{
@@ -57,6 +58,14 @@ let resource= new RestfulResource<any,{
     modelPath:['people'],
     dispatch:store.dispatch.bind(store),
     apiType:"Loopback",
+    mapResToData:(data,method)=>{
+        if(method === 'get')
+            return data.map(x=>({
+                ...x,
+                okane:x.age*1000
+            }));
+        else return data;
+    },
     actions:[{
         key:"httpAction",
         displayName:"httpAction",
