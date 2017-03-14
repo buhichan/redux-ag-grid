@@ -3,7 +3,7 @@ import {deepSetState, deepGetState} from "./Utils";
  * Created by YS on 2016/11/4.
  */
 
-import {List} from "immutable"
+import {List,Map,Repeat} from "immutable"
 
 export interface GridActionPayload<T>{
     modelPath:string[],
@@ -13,7 +13,8 @@ export interface GridActionPayload<T>{
 export type GridActionTypes = "grid/model/get"|"grid/model/count"|"grid/model/post"|"grid/model/put"|"grid/model/delete"|"grid/model/change"
 
 export interface GridGetPayload<T> extends GridActionPayload<T>{
-    models:T[]
+    models:T[],
+    offset:number
 }
 
 export interface GridPutPayload<T> extends GridActionPayload<T>{
@@ -46,10 +47,23 @@ export function GridReducer<T>(rootState, action: {
     let payload,list:List<T>,index;
     switch (action.type) {
         case "grid/model/get":
-            return deepSetState(rootState, List((action.value as GridGetPayload<T>).models), ...action.value.modelPath);
+            payload = action.value as GridGetPayload<T>;
+            if(payload.offset===null)
+                return deepSetState(rootState, List(payload.models), ...payload.modelPath);
+            else {
+                let prev = deepGetState(rootState,...payload.modelPath) as List<T>;
+                if(prev.size < payload.offset)
+                    prev = prev.concat(Repeat(null,payload.offset-prev.size)) as List<T>;
+                return deepSetState(rootState, prev.splice(payload.offset,payload.models.length,...payload.models), ...payload.modelPath)
+            }
         case "grid/model/count":
             payload = action.value as GridCountPayload<T>;
-            return deepSetState(rootState, payload.count, 'grid', 'counts' ,payload.modelPath);
+            const gridInfo = deepGetState(rootState,'grid',payload.gridName);
+            const newValue = Map({
+                count:payload.count,
+                countedTime:Date.now()
+            });
+            return deepSetState(rootState, gridInfo?gridInfo.merge(newValue):newValue,'grid',payload.gridName);
         case "grid/model/put":
             payload = action.value as GridPostPayload<T>;
             list = deepGetState(rootState,...payload.modelPath);

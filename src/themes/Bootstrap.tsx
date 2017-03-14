@@ -33,23 +33,33 @@ setTheme({
         }
     },
     GridRenderer:class GridRenderer extends React.PureComponent<GridRendererProps,{}>{
+        gridApi;
+        constructor(props){
+            super();
+            props.apiRef((api)=>{
+                this.gridApi = api;
+            })
+        }
         render() {
             const props = this.props;
             return <div className={"redux-ag-grid ag-bootstrap panel panel-default"} style={{height:"100%"}}>
                 <div className="panel-heading clearfix">
                     {props.noSelect || <div className="pull-left">
-                        <button className="btn btn-default" onClick={props.onSelectAll}>全选/取消</button>
+                        <button className="btn btn-default" onClick={()=>this.gridApi.selectAll()}>全选/取消</button>
                     </div>}
                     <div className="btn-group btn-group-sm pull-right">
                         {
                             props.actions.map((action, i) =>
                                 <button key={i} className="btn btn-default"
-                                        onClick={(e)=>action(props.gridApi.getSelectedRows(),e as any)}>{action.displayName}</button>)
+                                        onClick={(e)=>action(this.gridApi.getSelectedRows(),e as any)}>{action.displayName}</button>)
                         }
                     </div>
                 </div>
                 <div className="panel-body" style={{height:(props.height?(props.height||600)+"px":"100%")}}>
                     {props.children}
+                    <div className="pagination">
+
+                    </div>
                 </div>
             </div>
         }

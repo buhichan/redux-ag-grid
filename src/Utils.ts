@@ -5,10 +5,12 @@ import {isNullOrUndefined} from "util";
 
 
 export function getImmuOrPOJO(target,key){
+    if(!target) return null;
     return (typeof target.get === 'function')?
         target.get(key):target[key]
 }
 export function setImmuOrPOJO(target,data,key){
+    if(!target) return null;
     if(typeof target.set === 'function')
         return target.set(key,data);
     else{

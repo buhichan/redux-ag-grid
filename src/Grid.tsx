@@ -15,23 +15,6 @@ import {currentTheme, ITheme} from "./themes"
 import {List} from "immutable";
 import {Store} from "redux"
 
-export interface GridFilter{
-    quickFilterText?:string,
-    pagination?:{
-        offset:number,
-        limit:number,
-        total?:number
-    },
-    search?:{
-        field:string,
-        value:any
-    }[],
-    sort?:{
-        field:string,
-        reverse:boolean
-    }
-}
-
 export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|"datetime"|"group"|"time"|null;
 export type Options = {name:string,value:string|number}[]
 export type AsyncOptions = ()=>Promise<Options>
@@ -48,7 +31,6 @@ export interface GridState<T>{
     quickFilterText?:string,
     gridOptions?:GridOptions,
     themeRenderer:ITheme,
-    selectAll?:boolean,
     models:List<T>,
     staticActions:ActionInstance<T>[]
 }
@@ -72,7 +54,7 @@ export interface GridProps<T>{
     gridOptions?:GridOptions,
     dispatch?:any,
     height?:number,
-    serverSideFilter?:boolean,
+    serverSideFiltering?:boolean,
     data?:T[] | List<T>
     noSearch?:boolean,
     selectionStyle?:"row"|"checkbox",
@@ -102,7 +84,6 @@ const datetimeFormatOptions = {year:"numeric",month:"2-digit",day:"2-digit",hour
 
 export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
     gridApi:GridApi;
-    columnApi:ColumnApi;
     shouldComponentUpdate(nextProps:GridProps<T>,nextState:GridState<T>){
         if(this.props.schema !== nextProps.schema ||
             this.props.actions !== nextProps.actions ||
@@ -124,14 +105,15 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                 suppressNoRowsOverlay:true,
                 rowData:[],
                 paginationPageSize:20,
+                suppressPaginationPanel:true,
+                rowModelType:this.props.serverSideFiltering?"pagination":undefined,
                 rowHeight:40,
-                onGridReady:params=>{
+                onGridReady:(params)=>{
                     this.gridApi=params.api;
-                    this.columnApi=params.columnApi;
-                    if(this.props.gridApi)
-                        this.props.gridApi(this.gridApi);
                     if(this.props.columnApi)
-                        this.props.columnApi(this.columnApi);
+                        this.props.columnApi(params.columnApi);
+                    if(this.apiSender)
+                        this.apiSender.forEach(send=>send(params.api));
                 },
                 onColumnEverythingChanged:()=>window.innerWidth>=480&&this.gridApi&&this.gridApi.sizeColumnsToFit(),
                 rowSelection:"multiple",
@@ -140,11 +122,16 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                 enableColResize: true
             },
             themeRenderer:currentTheme(),
-            selectAll:false,
             staticActions:[]
         };
         Object.assign(this.state.gridOptions,props.gridOptions);
+        if(this.props.gridApi)
+            this.apiSender.push(this.props.gridApi);
     }
+    apiSender=[];
+    sendApi=(cb)=>{
+        this.apiSender.push(cb);
+    };
     componentDidMount(){
         if(this.props.resource)
             this.unsubscriber = Store.subscribe(this.handleStoreChange.bind(this));
@@ -169,6 +156,8 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
         if(this.props.gridApi)
             this.props.gridApi(null);
         this.unsubscriber && this.unsubscriber();
+        if(this.apiSender)
+            this.apiSender.forEach(send=>send(null));
         window.removeEventListener('resize',this.onResize);
     }
     componentWillMount(){
@@ -177,8 +166,7 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
         }else if(this.props.resource){
             if (!this.props.resource._modelPath)
                 throw new Error("请在resource上声明modelPath:string[]");
-            this.props.resource.get();
-            this.props.resource['_gridName'] = this.props.gridName || ('grid' + Math.random());
+            this.props.resource._gridName = this.props.gridName || ('grid' + Math.random());
         }
         window.addEventListener('resize',this.onResize);
         this.parseSchema(this.props.schema).then((parsed)=> {
@@ -187,13 +175,14 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
     }
     onReady(schema){
         let {staticActions,rowActions} = this.getActions();
-        const gridOptions = Object.assign(this.state.gridOptions,{
-            quickFilterText:this.state.quickFilterText,
-            context:{
-                getSelected:()=>this.gridApi.getSelectedRows(),
-                dispatch:this.props.dispatch
-            },
-        });
+        const gridOptions:GridOptions = {
+            ...this.state.gridOptions,
+            quickFilterText: this.state.quickFilterText,
+            context: {
+                getSelected: () => this.gridApi.getSelectedRows(),
+                dispatch: this.props.dispatch
+            }
+        };
         let columnDefs:ColDef[];
         if(!schema||!schema.length)
             columnDefs = [];
@@ -229,37 +218,51 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                     headerCheckboxSelectionFilteredOnly: true
                 });
                 gridOptions.suppressRowClickSelection = true;
-            }else if(this.props.selectionStyle === 'row'){
+            }else if(this.props.selectionStyle === 'row')
                 gridOptions.suppressRowClickSelection = false;
-            }
         }
         gridOptions.columnDefs = columnDefs;
         if(this.props.resource) {
-            //todo: server side filtering
-            if (this.props.serverSideFilter) {
-                gridOptions['rowModelType'] = 'virtual';
-                gridOptions['datasource'] = {
+            if (this.props.serverSideFiltering) {
+                gridOptions.datasource = {
                     getRows: (params: IGetRowsParams)=> {
-                        let data = deepGetState(Store.getState(), ...this.props.resource._modelPath);
-                        if (data.length < params.endRow) {
-                            const resource = this.props.resource;
+                        const storeState = Store.getState();
+                        const resource = this.props.resource;
+                        const allData = deepGetState(storeState, ...this.props.resource._modelPath);
+                        const gridInfo = deepGetState(storeState, 'grid',resource._gridName);
+                        const {count,countedTime} = gridInfo?gridInfo.toObject():{count:null,countedTime:0};
+                        const data = allData.slice(params.startRow, params.endRow).toArray();
+                        if (
+                            Date.now()-countedTime>resource._cacheTime*1000 ||
+                            count === null ||
+                            data.some(x=>x===null) ||
+                            data.length < Math.min(count,params.endRow) - params.startRow
+                        ) { // has no total number, or data has some holes
                             resource.filter({
                                 pagination: {
                                     offset: params.startRow,
                                     limit: params.endRow - params.startRow
                                 }
                             });
-                            resource.get().then(()=> {
-                                let data = deepGetState(Store.getState(), ...this.props.resource._modelPath);
-                                params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
+                            Promise.all([
+                                resource.get(),
+                                resource.count(),
+                            ]).then(([data,count])=> {
+                                params.successCallback(data, count);
                             });
                         }
-                        else
-                            params.successCallback(data.slice(params.startRow, params.endRow));
+                        else if (count !== null)
+                            params.successCallback(data, count);
+                        else // fallback
+                            params.successCallback(data);
                     }
                 };
-            } else
-                gridOptions['rowData'] = deepGetState(Store.getState(), ...this.props.resource._modelPath);
+            } else {
+                this.props.resource.get().then(()=>{
+                    this.state.gridOptions.rowData = deepGetState(Store.getState(), ...this.props.resource._modelPath);
+                    this.setState({gridOptions:this.state.gridOptions});
+                })
+            }
         }
         this.setState({
             staticActions,
@@ -380,25 +383,20 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
             rowActions
         }
     }
-    onSelectAll=()=>{
-        this.state.selectAll?this.gridApi.deselectAll():this.gridApi.selectAll();
-        this.state.selectAll = !this.state.selectAll;
-    };
     render(){
         const AgGrid = React.Children.only(this.props.children);
         let {staticActions,gridOptions} = this.state;
-        if(!this.props.serverSideFilter && this.props.resource)
-            gridOptions['rowData'] = this.state.models.toArray();
+        if(!this.props.serverSideFiltering && this.props.resource)
+            gridOptions.rowData = this.state.models.toArray();
         else if(this.props.data)
-            gridOptions['rowData'] = this.props.data as T[];
+            gridOptions.rowData = this.props.data as T[];
         let GridRenderer = this.state.themeRenderer.GridRenderer;
         const AgGridCopy = React.cloneElement(AgGrid,Object.assign(gridOptions,AgGrid.props));
         return <GridRenderer
             noSearch={this.props.noSearch}
             actions={staticActions}
-            onSelectAll={this.onSelectAll}
             dispatch={this.props.dispatch}
-            gridApi={this.gridApi}
+            apiRef={this.sendApi}
             height={this.props.height}
         >
             {AgGridCopy}

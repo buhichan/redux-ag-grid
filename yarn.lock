@@ -75,13 +75,13 @@ acorn@^3.0.0:
   version "3.3.0"
   resolved "http://registry.npm.taobao.org/acorn/download/acorn-3.3.0.tgz#45e37fb39e8da3f25baee3ff5369e2bb5f22017a"
 
-ag-grid-react@^8.1.0:
-  version "8.1.0"
-  resolved "http://registry.npm.taobao.org/ag-grid-react/download/ag-grid-react-8.1.0.tgz#4b815b5f7f9e65ae1d0de7461c9866781720a927"
+ag-grid-react@^8.2.0:
+  version "8.2.0"
+  resolved "http://registry.npm.taobao.org/ag-grid-react/download/ag-grid-react-8.2.0.tgz#a9c33f2095de4c6f81b21d9c4d1e6389c4d5d4b2"
 
-ag-grid@^8.1.1:
-  version "8.1.1"
-  resolved "http://registry.npm.taobao.org/ag-grid/download/ag-grid-8.1.1.tgz#0d6ef4d1526086295ab2c1c438badb7a5770367d"
+ag-grid@^8.2.0:
+  version "8.2.0"
+  resolved "http://registry.npm.taobao.org/ag-grid/download/ag-grid-8.2.0.tgz#5919332e8bd62cffb9f769e8d8f151797116a750"
 
 align-text@^0.1.1, align-text@^0.1.3:
   version "0.1.4"

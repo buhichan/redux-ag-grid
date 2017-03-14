@@ -1,5 +1,5 @@
 import {Options} from "../Grid";
-import {GridApi} from "ag-grid"
+import {GridApi, GridOptions} from "ag-grid"
 import * as React from "react"
 import {ActionInstance} from "../ActionClassFactory";
 import {ICellRendererReactComp} from "ag-grid-react/lib/interfaces";
@@ -8,9 +8,8 @@ import {ICellRendererReactComp} from "ag-grid-react/lib/interfaces";
  */
 
 export type GridRendererProps = {
-    onSelectAll:()=>void
     dispatch:(action:any)=>void
-    gridApi:GridApi,
+    apiRef:(bindApi:(api:GridApi)=>void)=>void,
     actions:ActionInstance<any>[]
     height:number
     children?:any[]

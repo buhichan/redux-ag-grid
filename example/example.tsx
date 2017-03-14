@@ -85,7 +85,7 @@ setStore(store);
 ReactDOM.render(
     (<div style={{height:"1000px"}} >
         <MuiThemeProvider muiTheme={theme}>
-            <ReduxAgGrid resource={resource as any} schema={schema} actions={actions} selectionStyle="checkbox">
+            <ReduxAgGrid resource={resource as any} serverSideFiltering schema={schema} actions={actions} selectionStyle="checkbox">
                 <AgGridReact />
             </ReduxAgGrid>
         </MuiThemeProvider>

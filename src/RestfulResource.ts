@@ -3,12 +3,28 @@
  */
 "use strict";
 import {RestfulActionClassFactory, RestfulActionDef, ActionInstance} from "./ActionClassFactory"
-import {GridFilter} from "./Grid"
 import {keyValueToQueryParams} from "./Utils";
 
 /**
  * Created by YS on 2016/11/4.
  */
+
+export interface ResourceFilter{
+    quickFilterText?:string,
+    pagination?:{
+        offset:number,
+        limit:number,
+        total?:number
+    },
+    search?:{
+        field:string,
+        value:any
+    }[],
+    sort?:{
+        field:string,
+        reverse:boolean
+    }
+}
 
 declare namespace NodeRestful{
     export interface Params{
@@ -58,13 +74,13 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         fetch = window.fetch.bind(window),
         mapResToData = x=>x,
         actions,
-        cacheTime=1,
+        cacheTime=5,
     }:{
         url:string,
         modelPath:string[],
         dispatch:(action:any)=>void,
         key?,
-        mapFilterToQuery?:(filter:GridFilter)=>({[id:string]:any}),
+        mapFilterToQuery?:(filter:ResourceFilter)=>({[id:string]:any}),
         methods?:Resource<Model>,
         apiType?:APIType,
         fetch?:typeof window.fetch,
@@ -84,7 +100,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             case "NodeRestful": {
                 this._mapFilterToQuery = mapFilterToQuery || function (filter) {
                         let _filter: NodeRestful.Params = {};
-                        filter.search.forEach(function (condition) {
+                        filter.search && filter.search.forEach(function (condition) {
                             let key = condition.field.replace(/\[[^\]]*\]/, '');
                             if (/^\/.*\/$/.test(condition.value))
                                 _filter[key + "__regex"] = condition.value;
@@ -107,7 +123,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             case "Loopback": {
                 this._mapFilterToQuery = mapFilterToQuery || function (filter) {
                         let _filter: Loopback.Params = {where: {}};
-                        filter.search.forEach(function (condition) {
+                        filter.search && filter.search.forEach(function (condition) {
                             if (/^\/.*\/$/.test(condition.value))
                                 _filter.where[condition.field] = {like: condition.value.slice(1, -1)};
                             else
@@ -117,7 +133,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                             _filter.offset = filter.pagination.offset;
                             _filter.limit = filter.pagination.limit;
                         }
-                        if (filter.sort.field)
+                        if (filter.sort && filter.sort.field)
                             _filter.order = filter.sort.field + (filter.sort.reverse ? " DESC" : " ASC");
                         else
                             _filter.order = null;
@@ -127,16 +143,16 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                         if (this._query && this._query['filter'])
                             this._query['where'] = this._query['filter']['where'];
                         return fetch(url + '/count' + keyValueToQueryParams(this._query), this._config)
-                            .then(res=>res.json()).then(res=>mapResToData(res,'count')).then((res)=> {
+                            .then(res=>res.json()).then(({count})=> {
                                 dispatch({
                                     type: "grid/model/count",
                                     value: {
                                         modelPath,
                                         gridName: this._gridName,
-                                        count: res
+                                        count
                                     }
                                 });
-                                return res;
+                                return count;
                             });
                     });
                 break;
@@ -148,7 +164,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                             params['page'] = (filter.pagination.offset / filter.pagination.limit + 1);
                             params['perPage'] = filter.pagination.limit;
                         }
-                        if (filter.sort)
+                        if (filter.sort && filter.sort.field)
                             params['order'] = (filter.sort.field + filter.sort.reverse ? " DESC" : " ASC");
                         return params;
                     });
@@ -176,7 +192,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
             })
     }
 
-    _mapFilterToQuery:(filter:GridFilter)=>{[key:string]:string};
+    _mapFilterToQuery:(filter:ResourceFilter)=>{[key:string]:string};
     _options:ActionResourceOptions<Model>;
     _config: RequestInit= {};
     actions: Actions & {[actionName:string]:ActionInstance<Model>};
@@ -190,11 +206,12 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     _cacheTime?:number;
     _isCustomFilterPresent=false;
     _query:{[key:string]:string}={};
-    _filter:{[key:string]:string}={};
+    _filter:ResourceFilter={};
+    //fixme: filter and query is chaotic
 
     _lastGetAll:Promise<Model[]> | null = null;
     _lastCachedTime:number;
-        //TODO catch exception
+    offset:number = null;
     get():Promise<Model[]>
     get(id):Promise<Model>
     get(id?):Promise<Model[]|Model>{
@@ -214,7 +231,8 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                             value: {
                                 modelPath: this._modelPath,
                                 key: this._idGetter,
-                                models
+                                models,
+                                offset:this.offset
                             }
                         });
                     } else {
@@ -234,7 +252,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
                 this._lastGetAll = null;
             return this.errorHandler(e);
         });
-        if(!id && !this._isCustomFilterPresent)
+        if(this.offset===null && !id && !this._isCustomFilterPresent)
             this._lastGetAll = pending;
         return pending;
     }
@@ -318,8 +336,10 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
     getQueryString(){
         return keyValueToQueryParams(Object.assign({},this._filter,this._query));
     }
-    filter(_filter:GridFilter){
+    filter(_filter:ResourceFilter){
         this._filter = this._mapFilterToQuery(_filter);
+        if(_filter.pagination)
+            this.offset = _filter.pagination.offset;
         return this;
     }
     query(query){

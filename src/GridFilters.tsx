@@ -34,11 +34,14 @@ export class DateFilter extends React.Component<any,any>{
     }
 
     datePassed(date){
-        return date>=this.from || !(this.from instanceof Date) && date<=this.to || !(this.to instanceof Date);
+        return (
+            date>=this.from || !(this.from instanceof Date && isFinite(this.from as any)) &&
+            date<=this.to   || !(this.to instanceof Date && isFinite(this.to as any))
+        );
     }
 
     doesFilterPass(params: IDoesFilterPassParams): boolean {
-        let value = deepGet(params.data,this.params.colDef['_idGetter']);
+        let value = this.params.valueGetter(params.node);
         if(value instanceof Date){
             return this.datePassed(value)
         }else if(typeof value === 'number'){
@@ -80,9 +83,9 @@ export class EnumFilter extends React.Component<any,any>{
     }
 
     render(){
-        return <select style={{"margin":"4px"}} ref={ref=>this.select=ref} multiple onChange={()=>this.onChange()}>
+        return <select style={{margin:4,minWidth:100}} ref={ref=>this.select=ref} multiple onChange={this.onChange}>
             {
-                this.options.map((option,i)=><option key={i} value={option.value}>{option.name}</option>)
+                this.options.map((option,i)=><option key={i} value={option.name}>{option.name}</option>)
             }
         </select>
     }
@@ -92,7 +95,7 @@ export class EnumFilter extends React.Component<any,any>{
     }
 
     doesFilterPass(params: IDoesFilterPassParams): boolean {
-        let value = deepGet(params.data,this.params.colDef['_idGetter']);
+        let value = this.params.valueGetter(params.node);
         return this.selected.some(selectedOption=>{
             if(value instanceof Array)
                 return value.indexOf(selectedOption)>=0;
@@ -117,12 +120,12 @@ export class EnumFilter extends React.Component<any,any>{
         this.selected = model.selected;
     }
 
-    onChange(){
+    onChange=()=>{
         this.selected = [];
         for(let i =0;i<this.select.selectedOptions.length;i++)
             this.selected.push(this.select.selectedOptions[i].value);
         this.params.filterChangedCallback();
-    }
+    };
 }
 
 const Filters = {

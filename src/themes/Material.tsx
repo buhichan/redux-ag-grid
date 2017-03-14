@@ -3,14 +3,17 @@
  */
 import * as React from "react"
 import {ITheme,setTheme} from "../"
-
+import IconButton from "material-ui/IconButton"
 import Chip from "material-ui/Chip"
 import RaisedButton from "material-ui/RaisedButton"
 import TextField from "material-ui/TextField"
 import FlatButton from "material-ui/FlatButton"
+import ArrowForward from "material-ui/svg-icons/navigation/arrow-forward"
+import ArrowBack from "material-ui/svg-icons/navigation/arrow-back"
 import Checkbox from 'material-ui/Checkbox'
 import "ag-grid/dist/styles/theme-material.css"
-import {ICellRendererParams, IHeaderParams} from "ag-grid";
+import {ICellRendererParams, IHeaderParams, GridApi} from "ag-grid";
+import {GridRendererProps} from "./index";
 setTheme({
     SelectionCheckboxRenderer:class CheckboxCell extends React.PureComponent<ICellRendererParams,any>{
         refresh(){}
@@ -74,9 +77,33 @@ setTheme({
         }
         return EnumCell;
     },
-    GridRenderer:class GridRenderer extends React.Component<any,any>{
+    GridRenderer:class GridRenderer extends React.Component<GridRendererProps,any>{
         pendingUpdate;
+        gridApi:GridApi;
+        constructor(props){
+            super();
+            props.apiRef((api)=>{
+                this.gridApi = api;
+                api.addEventListener('paginationPageLoaded',this.boundForceUpdate);
+            })
+        }
+        boundForceUpdate=()=>this.forceUpdate();
+        componentWillUnmount(){
+            this.gridApi.removeEventListener('paginationPageLoaded',this.boundForceUpdate);
+        }
+        onPaginationChange=(e)=>{
+            const pageNumber = e.target.value;
+            if(isFinite(pageNumber))
+                this.gridApi.paginationGoToPage(pageNumber);
+        };
+        goPrevPage=()=>{
+            this.gridApi.paginationGoToPreviousPage();
+        };
+        goNextPage=()=>{
+            this.gridApi.paginationGoToNextPage()
+        };
         render() {
+            const api = this.gridApi;
             const buttonProps = {
                 overlayStyle:{padding:"0 15px"}
             };
@@ -85,12 +112,12 @@ setTheme({
                     <div className="col-xs-12 col-md-9" style={{zIndex:1}}>
                         {
                             this.props.actions.map((action, i)=>{
-                                if(action.enabled && !action.enabled()) return null;
+                                if(action.enabled && !(action.enabled as any)()) return null;
                                 else
                                     return <RaisedButton style={{margin:'0 5px 5px 0'}}
                                                          key={i}
                                         {...buttonProps}
-                                                         onClick={(e)=>action(this.props.gridApi.getSelectedRows(),e)}>{action.displayName}</RaisedButton>
+                                                         onClick={(e)=>action(api.getSelectedRows(),e as any)}>{action.displayName}</RaisedButton>
                             })
                         }
                     </div>
@@ -107,7 +134,7 @@ setTheme({
                                 if(this.pendingUpdate)
                                     clearTimeout(this.pendingUpdate);
                                 this.pendingUpdate = setTimeout(()=>{
-                                    this.props.gridApi.setQuickFilter(value);
+                                    api.setQuickFilter(value);
                                 },400)
                             }}
                             />
@@ -117,6 +144,35 @@ setTheme({
                 <div style={{height:(this.props.height||600)+"px"}}>
                     {this.props.children}
                 </div>
+                {api?
+                <div>
+                    <IconButton
+                        style={{float:'left'}}
+                        onTouchTap={this.goPrevPage}
+                    >
+                        <ArrowBack />
+                    </IconButton>
+                    <label style={{
+                        marginTop:9,
+                        lineHeight:"25px"
+                    }}>
+                        <input
+                            style={{
+                                lineHeight:"25px"
+                            }}
+                            type="text"
+                            value={`${api.paginationGetCurrentPage()+1}`}
+                            onChange={this.onPaginationChange}
+                        />
+                        /{api.paginationGetTotalPages()}页
+                    </label>
+                    <IconButton
+                        style={{float:'right'}}
+                        onTouchTap={this.goNextPage}
+                    >
+                        <ArrowForward />
+                    </IconButton>
+                </div>:null}
             </div>
         }
     },
