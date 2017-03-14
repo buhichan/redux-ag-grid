@@ -6,13 +6,15 @@ var ActionClassFactory_1 = require("./ActionClassFactory");
 var Utils_1 = require("./Utils");
 var RestfulResource = (function () {
     function RestfulResource(_a) {
-        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, _b = _a.key, key = _b === void 0 ? (function (x) { return x['id']; }) : _b, mapFilterToQuery = _a.mapFilterToQuery, _c = _a.methods, methods = _c === void 0 ? {} : _c, _d = _a.apiType, apiType = _d === void 0 ? 'Loopback' : _d, _e = _a.fetch, fetch = _e === void 0 ? window.fetch.bind(window) : _e, _f = _a.mapResToData, mapResToData = _f === void 0 ? function (x) { return x; } : _f, actions = _a.actions, _g = _a.cacheTime, cacheTime = _g === void 0 ? 1 : _g;
+        var url = _a.url, modelPath = _a.modelPath, dispatch = _a.dispatch, _b = _a.key, key = _b === void 0 ? (function (x) { return x['id']; }) : _b, mapFilterToQuery = _a.mapFilterToQuery, _c = _a.methods, methods = _c === void 0 ? {} : _c, _d = _a.apiType, apiType = _d === void 0 ? 'Loopback' : _d, _e = _a.fetch, fetch = _e === void 0 ? window.fetch.bind(window) : _e, _f = _a.mapResToData, mapResToData = _f === void 0 ? function (x) { return x; } : _f, actions = _a.actions, _g = _a.cacheTime, cacheTime = _g === void 0 ? 5 : _g;
         var _this = this;
         this._config = {};
         this._isCustomFilterPresent = false;
         this._query = {};
         this._filter = {};
+        //fixme: filter and query is chaotic
         this._lastGetAll = null;
+        this.offset = null;
         if (url.substr(-1) === '/')
             url = url.slice(0, -1);
         this._idGetter = key;
@@ -26,7 +28,7 @@ var RestfulResource = (function () {
             case "NodeRestful": {
                 this._mapFilterToQuery = mapFilterToQuery || function (filter) {
                     var _filter = {};
-                    filter.search.forEach(function (condition) {
+                    filter.search && filter.search.forEach(function (condition) {
                         var key = condition.field.replace(/\[[^\]]*\]/, '');
                         if (/^\/.*\/$/.test(condition.value))
                             _filter[key + "__regex"] = condition.value;
@@ -49,7 +51,7 @@ var RestfulResource = (function () {
             case "Loopback": {
                 this._mapFilterToQuery = mapFilterToQuery || function (filter) {
                     var _filter = { where: {} };
-                    filter.search.forEach(function (condition) {
+                    filter.search && filter.search.forEach(function (condition) {
                         if (/^\/.*\/$/.test(condition.value))
                             _filter.where[condition.field] = { like: condition.value.slice(1, -1) };
                         else
@@ -59,7 +61,7 @@ var RestfulResource = (function () {
                         _filter.offset = filter.pagination.offset;
                         _filter.limit = filter.pagination.limit;
                     }
-                    if (filter.sort.field)
+                    if (filter.sort && filter.sort.field)
                         _filter.order = filter.sort.field + (filter.sort.reverse ? " DESC" : " ASC");
                     else
                         _filter.order = null;
@@ -69,16 +71,17 @@ var RestfulResource = (function () {
                     if (_this._query && _this._query['filter'])
                         _this._query['where'] = _this._query['filter']['where'];
                     return fetch(url + '/count' + Utils_1.keyValueToQueryParams(_this._query), _this._config)
-                        .then(function (res) { return res.json(); }).then(function (res) { return mapResToData(res, 'count'); }).then(function (res) {
+                        .then(function (res) { return res.json(); }).then(function (_a) {
+                        var count = _a.count;
                         dispatch({
                             type: "grid/model/count",
                             value: {
                                 modelPath: modelPath,
                                 gridName: _this._gridName,
-                                count: res
+                                count: count
                             }
                         });
-                        return res;
+                        return count;
                     });
                 });
                 break;
@@ -90,7 +93,7 @@ var RestfulResource = (function () {
                         params['page'] = (filter.pagination.offset / filter.pagination.limit + 1);
                         params['perPage'] = filter.pagination.limit;
                     }
-                    if (filter.sort)
+                    if (filter.sort && filter.sort.field)
                         params['order'] = (filter.sort.field + filter.sort.reverse ? " DESC" : " ASC");
                     return params;
                 });
@@ -135,7 +138,8 @@ var RestfulResource = (function () {
                         value: {
                             modelPath: _this._modelPath,
                             key: _this._idGetter,
-                            models: models
+                            models: models,
+                            offset: _this.offset
                         }
                     });
                 }
@@ -156,7 +160,7 @@ var RestfulResource = (function () {
                 _this._lastGetAll = null;
             return _this.errorHandler(e);
         });
-        if (!id && !this._isCustomFilterPresent)
+        if (this.offset === null && !id && !this._isCustomFilterPresent)
             this._lastGetAll = pending;
         return pending;
     };
@@ -246,6 +250,8 @@ var RestfulResource = (function () {
     };
     RestfulResource.prototype.filter = function (_filter) {
         this._filter = this._mapFilterToQuery(_filter);
+        if (_filter.pagination)
+            this.offset = _filter.pagination.offset;
         return this;
     };
     RestfulResource.prototype.query = function (query) {

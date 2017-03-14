@@ -1,6 +1,24 @@
 /// <reference types="whatwg-fetch" />
 import { RestfulActionDef, ActionInstance } from "./ActionClassFactory";
-import { GridFilter } from "./Grid";
+/**
+ * Created by YS on 2016/11/4.
+ */
+export interface ResourceFilter {
+    quickFilterText?: string;
+    pagination?: {
+        offset: number;
+        limit: number;
+        total?: number;
+    };
+    search?: {
+        field: string;
+        value: any;
+    }[];
+    sort?: {
+        field: string;
+        reverse: boolean;
+    };
+}
 export declare type APIType = 'NodeRestful' | 'Loopback' | 'Swagger' | null;
 export interface Resource<T> {
     get(): Promise<T[]>;
@@ -21,7 +39,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         modelPath: string[];
         dispatch: (action: any) => void;
         key?;
-        mapFilterToQuery?: (filter: GridFilter) => ({
+        mapFilterToQuery?: (filter: ResourceFilter) => ({
             [id: string]: any;
         });
         methods?: Resource<Model>;
@@ -33,7 +51,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         }>);
         cacheTime?: number;
     });
-    _mapFilterToQuery: (filter: GridFilter) => {
+    _mapFilterToQuery: (filter: ResourceFilter) => {
         [key: string]: string;
     };
     _options: ActionResourceOptions<Model>;
@@ -53,11 +71,10 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     _query: {
         [key: string]: string;
     };
-    _filter: {
-        [key: string]: string;
-    };
+    _filter: ResourceFilter;
     _lastGetAll: Promise<Model[]> | null;
     _lastCachedTime: number;
+    offset: number;
     get(): Promise<Model[]>;
     get(id: any): Promise<Model>;
     count(): Promise<number>;
@@ -66,7 +83,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
     post(data: any): Promise<Model>;
     errorHandler(e: Response): void;
     getQueryString(): string;
-    filter(_filter: GridFilter): this;
+    filter(_filter: ResourceFilter): this;
     query(query: any): this;
     markAsDirty(): this;
 }

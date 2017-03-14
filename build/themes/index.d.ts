@@ -8,9 +8,8 @@ import { ICellRendererReactComp } from "ag-grid-react/lib/interfaces";
  * Created by YS on 2016/11/16.
  */
 export declare type GridRendererProps = {
-    onSelectAll: () => void;
     dispatch: (action: any) => void;
-    gridApi: GridApi;
+    apiRef: (bindApi: (api: GridApi) => void) => void;
     actions: ActionInstance<any>[];
     height: number;
     children?: any[];

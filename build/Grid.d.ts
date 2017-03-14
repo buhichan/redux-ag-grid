@@ -7,22 +7,6 @@ import { RestfulResource } from "./RestfulResource";
 import { ActionInstance, BaseActionDef } from "./ActionClassFactory";
 import { ITheme } from "./themes";
 import { List } from "immutable";
-export interface GridFilter {
-    quickFilterText?: string;
-    pagination?: {
-        offset: number;
-        limit: number;
-        total?: number;
-    };
-    search?: {
-        field: string;
-        value: any;
-    }[];
-    sort?: {
-        field: string;
-        reverse: boolean;
-    };
-}
 export declare type columnType = "text" | "number" | "select" | "checkbox" | "date" | "datetime-local" | "datetime" | "group" | "time" | null;
 export declare type Options = {
     name: string;
@@ -40,7 +24,6 @@ export interface GridState<T> {
     quickFilterText?: string;
     gridOptions?: GridOptions;
     themeRenderer: ITheme;
-    selectAll?: boolean;
     models: List<T>;
     staticActions: ActionInstance<T>[];
 }
@@ -61,7 +44,7 @@ export interface GridProps<T> {
     gridOptions?: GridOptions;
     dispatch?: any;
     height?: number;
-    serverSideFilter?: boolean;
+    serverSideFiltering?: boolean;
     data?: T[] | List<T>;
     noSearch?: boolean;
     selectionStyle?: "row" | "checkbox";
@@ -70,9 +53,10 @@ export interface GridProps<T> {
 export declare function setStore(store: any): void;
 export declare class ReduxAgGrid<T> extends Component<GridProps<T>, GridState<T>> {
     gridApi: GridApi;
-    columnApi: ColumnApi;
     shouldComponentUpdate(nextProps: GridProps<T>, nextState: GridState<T>): boolean;
     constructor(props: any, context: any);
+    apiSender: any[];
+    sendApi: (cb: any) => void;
     componentDidMount(): void;
     handleStoreChange(): void;
     unsubscriber: any;
@@ -89,6 +73,5 @@ export declare class ReduxAgGrid<T> extends Component<GridProps<T>, GridState<T>
         staticActions: StaticAction<T>[];
         rowActions: ActionInstance<T>[];
     };
-    onSelectAll: () => void;
     render(): JSX.Element;
 }

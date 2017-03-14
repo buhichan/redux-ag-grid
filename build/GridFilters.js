@@ -8,7 +8,6 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var React = require("react");
-var Utils_1 = require("./Utils");
 var DateFilter = (function (_super) {
     __extends(DateFilter, _super);
     function DateFilter(params) {
@@ -30,10 +29,11 @@ var DateFilter = (function (_super) {
         this.input.focus();
     };
     DateFilter.prototype.datePassed = function (date) {
-        return date >= this.from || !(this.from instanceof Date) && date <= this.to || !(this.to instanceof Date);
+        return (date >= this.from || !(this.from instanceof Date && isFinite(this.from)) &&
+            date <= this.to || !(this.to instanceof Date && isFinite(this.to)));
     };
     DateFilter.prototype.doesFilterPass = function (params) {
-        var value = Utils_1.deepGet(params.data, this.params.colDef['_idGetter']);
+        var value = this.params.valueGetter(params.node);
         if (value instanceof Date) {
             return this.datePassed(value);
         }
@@ -74,19 +74,25 @@ var EnumFilter = (function (_super) {
         var _this = _super.call(this) || this;
         _this.options = [];
         _this.selected = [];
+        _this.onChange = function () {
+            _this.selected = [];
+            for (var i = 0; i < _this.select.selectedOptions.length; i++)
+                _this.selected.push(_this.select.selectedOptions[i].value);
+            _this.params.filterChangedCallback();
+        };
         _this.params = params;
         _this.options = params.colDef._options;
         return _this;
     }
     EnumFilter.prototype.render = function () {
         var _this = this;
-        return React.createElement("select", { style: { "margin": "4px" }, ref: function (ref) { return _this.select = ref; }, multiple: true, onChange: function () { return _this.onChange(); } }, this.options.map(function (option, i) { return React.createElement("option", { key: i, value: option.value }, option.name); }));
+        return React.createElement("select", { style: { margin: 4, minWidth: 100 }, ref: function (ref) { return _this.select = ref; }, multiple: true, onChange: this.onChange }, this.options.map(function (option, i) { return React.createElement("option", { key: i, value: option.name }, option.name); }));
     };
     EnumFilter.prototype.isFilterActive = function () {
         return this.selected.length > 0;
     };
     EnumFilter.prototype.doesFilterPass = function (params) {
-        var value = Utils_1.deepGet(params.data, this.params.colDef['_idGetter']);
+        var value = this.params.valueGetter(params.node);
         return this.selected.some(function (selectedOption) {
             if (value instanceof Array)
                 return value.indexOf(selectedOption) >= 0;
@@ -106,12 +112,6 @@ var EnumFilter = (function (_super) {
     EnumFilter.prototype.setModel = function (model) {
         this.options = model._options;
         this.selected = model.selected;
-    };
-    EnumFilter.prototype.onChange = function () {
-        this.selected = [];
-        for (var i = 0; i < this.select.selectedOptions.length; i++)
-            this.selected.push(this.select.selectedOptions[i].value);
-        this.params.filterChangedCallback();
     };
     return EnumFilter;
 }(React.Component));

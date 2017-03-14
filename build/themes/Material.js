@@ -17,10 +17,13 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
  */
 var React = require("react");
 var _1 = require("../");
+var IconButton_1 = require("material-ui/IconButton");
 var Chip_1 = require("material-ui/Chip");
 var RaisedButton_1 = require("material-ui/RaisedButton");
 var TextField_1 = require("material-ui/TextField");
 var FlatButton_1 = require("material-ui/FlatButton");
+var arrow_forward_1 = require("material-ui/svg-icons/navigation/arrow-forward");
+var arrow_back_1 = require("material-ui/svg-icons/navigation/arrow-back");
 var Checkbox_1 = require("material-ui/Checkbox");
 require("ag-grid/dist/styles/theme-material.css");
 _1.setTheme({
@@ -87,11 +90,32 @@ _1.setTheme({
     },
     GridRenderer: (function (_super) {
         __extends(GridRenderer, _super);
-        function GridRenderer() {
-            return _super !== null && _super.apply(this, arguments) || this;
+        function GridRenderer(props) {
+            var _this = _super.call(this) || this;
+            _this.boundForceUpdate = function () { return _this.forceUpdate(); };
+            _this.onPaginationChange = function (e) {
+                var pageNumber = e.target.value;
+                if (isFinite(pageNumber))
+                    _this.gridApi.paginationGoToPage(pageNumber);
+            };
+            _this.goPrevPage = function () {
+                _this.gridApi.paginationGoToPreviousPage();
+            };
+            _this.goNextPage = function () {
+                _this.gridApi.paginationGoToNextPage();
+            };
+            props.apiRef(function (api) {
+                _this.gridApi = api;
+                api.addEventListener('paginationPageLoaded', _this.boundForceUpdate);
+            });
+            return _this;
         }
+        GridRenderer.prototype.componentWillUnmount = function () {
+            this.gridApi.removeEventListener('paginationPageLoaded', this.boundForceUpdate);
+        };
         GridRenderer.prototype.render = function () {
             var _this = this;
+            var api = this.gridApi;
             var buttonProps = {
                 overlayStyle: { padding: "0 15px" }
             };
@@ -101,7 +125,7 @@ _1.setTheme({
                         if (action.enabled && !action.enabled())
                             return null;
                         else
-                            return React.createElement(RaisedButton_1.default, __assign({ style: { margin: '0 5px 5px 0' }, key: i }, buttonProps, { onClick: function (e) { return action(_this.props.gridApi.getSelectedRows(), e); } }), action.displayName);
+                            return React.createElement(RaisedButton_1.default, __assign({ style: { margin: '0 5px 5px 0' }, key: i }, buttonProps, { onClick: function (e) { return action(api.getSelectedRows(), e); } }), action.displayName);
                     })),
                     React.createElement("div", { className: "col-xs-12 col-md-3" }, this.props.noSearch ||
                         React.createElement(TextField_1.default, { fullWidth: true, style: { marginTop: "-39px", top: "9px" }, name: "quick-filter", floatingLabelText: "搜索...", onChange: function (e) {
@@ -109,10 +133,26 @@ _1.setTheme({
                                 if (_this.pendingUpdate)
                                     clearTimeout(_this.pendingUpdate);
                                 _this.pendingUpdate = setTimeout(function () {
-                                    _this.props.gridApi.setQuickFilter(value);
+                                    api.setQuickFilter(value);
                                 }, 400);
                             } }))),
-                React.createElement("div", { style: { height: (this.props.height || 600) + "px" } }, this.props.children));
+                React.createElement("div", { style: { height: (this.props.height || 600) + "px" } }, this.props.children),
+                api ?
+                    React.createElement("div", null,
+                        React.createElement(IconButton_1.default, { style: { float: 'left' }, onTouchTap: this.goPrevPage },
+                            React.createElement(arrow_back_1.default, null)),
+                        React.createElement("label", { style: {
+                                marginTop: 9,
+                                lineHeight: "25px"
+                            } },
+                            React.createElement("input", { style: {
+                                    lineHeight: "25px"
+                                }, type: "text", value: "" + (api.paginationGetCurrentPage() + 1), onChange: this.onPaginationChange }),
+                            "/",
+                            api.paginationGetTotalPages(),
+                            "\u9875"),
+                        React.createElement(IconButton_1.default, { style: { float: 'right' }, onTouchTap: this.goNextPage },
+                            React.createElement(arrow_forward_1.default, null))) : null);
         };
         return GridRenderer;
     }(React.Component)),

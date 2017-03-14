@@ -3,11 +3,15 @@
  * Created by YS on 2016/11/4.
  */
 function getImmuOrPOJO(target, key) {
+    if (!target)
+        return null;
     return (typeof target.get === 'function') ?
         target.get(key) : target[key];
 }
 exports.getImmuOrPOJO = getImmuOrPOJO;
 function setImmuOrPOJO(target, data, key) {
+    if (!target)
+        return null;
     if (typeof target.set === 'function')
         return target.set(key, data);
     else {

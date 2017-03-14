@@ -45,16 +45,16 @@ var ReduxAgGrid = (function (_super) {
     __extends(ReduxAgGrid, _super);
     function ReduxAgGrid(props, context) {
         var _this = _super.call(this, props) || this;
+        _this.apiSender = [];
+        _this.sendApi = function (cb) {
+            _this.apiSender.push(cb);
+        };
         _this.onResize = function () {
             if (_this.pendingResize)
                 clearTimeout(_this.pendingResize);
             setTimeout(function () { return _this.gridApi && _this.gridApi.sizeColumnsToFit(); }, 300);
         };
         _this.isUnmounting = false;
-        _this.onSelectAll = function () {
-            _this.state.selectAll ? _this.gridApi.deselectAll() : _this.gridApi.selectAll();
-            _this.state.selectAll = !_this.state.selectAll;
-        };
         _this.state = {
             quickFilterText: '',
             models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath)) : null,
@@ -63,14 +63,15 @@ var ReduxAgGrid = (function (_super) {
                 suppressNoRowsOverlay: true,
                 rowData: [],
                 paginationPageSize: 20,
+                suppressPaginationPanel: true,
+                rowModelType: _this.props.serverSideFiltering ? "pagination" : undefined,
                 rowHeight: 40,
                 onGridReady: function (params) {
                     _this.gridApi = params.api;
-                    _this.columnApi = params.columnApi;
-                    if (_this.props.gridApi)
-                        _this.props.gridApi(_this.gridApi);
                     if (_this.props.columnApi)
-                        _this.props.columnApi(_this.columnApi);
+                        _this.props.columnApi(params.columnApi);
+                    if (_this.apiSender)
+                        _this.apiSender.forEach(function (send) { return send(params.api); });
                 },
                 onColumnEverythingChanged: function () { return window.innerWidth >= 480 && _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
                 rowSelection: "multiple",
@@ -79,10 +80,11 @@ var ReduxAgGrid = (function (_super) {
                 enableColResize: true
             },
             themeRenderer: themes_1.currentTheme(),
-            selectAll: false,
             staticActions: []
         };
         Object.assign(_this.state.gridOptions, props.gridOptions);
+        if (_this.props.gridApi)
+            _this.apiSender.push(_this.props.gridApi);
         return _this;
     }
     ReduxAgGrid.prototype.shouldComponentUpdate = function (nextProps, nextState) {
@@ -114,6 +116,8 @@ var ReduxAgGrid = (function (_super) {
         if (this.props.gridApi)
             this.props.gridApi(null);
         this.unsubscriber && this.unsubscriber();
+        if (this.apiSender)
+            this.apiSender.forEach(function (send) { return send(null); });
         window.removeEventListener('resize', this.onResize);
     };
     ReduxAgGrid.prototype.componentWillMount = function () {
@@ -124,8 +128,7 @@ var ReduxAgGrid = (function (_super) {
         else if (this.props.resource) {
             if (!this.props.resource._modelPath)
                 throw new Error("请在resource上声明modelPath:string[]");
-            this.props.resource.get();
-            this.props.resource['_gridName'] = this.props.gridName || ('grid' + Math.random());
+            this.props.resource._gridName = this.props.gridName || ('grid' + Math.random());
         }
         window.addEventListener('resize', this.onResize);
         this.parseSchema(this.props.schema).then(function (parsed) {
@@ -135,13 +138,10 @@ var ReduxAgGrid = (function (_super) {
     ReduxAgGrid.prototype.onReady = function (schema) {
         var _this = this;
         var _a = this.getActions(), staticActions = _a.staticActions, rowActions = _a.rowActions;
-        var gridOptions = Object.assign(this.state.gridOptions, {
-            quickFilterText: this.state.quickFilterText,
-            context: {
+        var gridOptions = __assign({}, this.state.gridOptions, { quickFilterText: this.state.quickFilterText, context: {
                 getSelected: function () { return _this.gridApi.getSelectedRows(); },
                 dispatch: this.props.dispatch
-            },
-        });
+            } });
         var columnDefs;
         if (!schema || !schema.length)
             columnDefs = [];
@@ -171,38 +171,51 @@ var ReduxAgGrid = (function (_super) {
                 });
                 gridOptions.suppressRowClickSelection = true;
             }
-            else if (this.props.selectionStyle === 'row') {
+            else if (this.props.selectionStyle === 'row')
                 gridOptions.suppressRowClickSelection = false;
-            }
         }
         gridOptions.columnDefs = columnDefs;
         if (this.props.resource) {
-            //todo: server side filtering
-            if (this.props.serverSideFilter) {
-                gridOptions['rowModelType'] = 'virtual';
-                gridOptions['datasource'] = {
+            if (this.props.serverSideFiltering) {
+                gridOptions.datasource = {
                     getRows: function (params) {
-                        var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath));
-                        if (data.length < params.endRow) {
-                            var resource = _this.props.resource;
+                        var storeState = redux_1.Store.getState();
+                        var resource = _this.props.resource;
+                        var allData = Utils_1.deepGetState.apply(void 0, [storeState].concat(_this.props.resource._modelPath));
+                        var gridInfo = Utils_1.deepGetState(storeState, 'grid', resource._gridName);
+                        var _a = gridInfo ? gridInfo.toObject() : { count: null, countedTime: 0 }, count = _a.count, countedTime = _a.countedTime;
+                        var data = allData.slice(params.startRow, params.endRow).toArray();
+                        if (Date.now() - countedTime > resource._cacheTime * 1000 ||
+                            count === null ||
+                            data.some(function (x) { return x === null; }) ||
+                            data.length < Math.min(count, params.endRow) - params.startRow) {
                             resource.filter({
                                 pagination: {
                                     offset: params.startRow,
                                     limit: params.endRow - params.startRow
                                 }
                             });
-                            resource.get().then(function () {
-                                var data = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath));
-                                params.successCallback(data.slice(params.startRow, params.endRow), data.length <= params.endRow ? data.length : undefined);
+                            Promise.all([
+                                resource.get(),
+                                resource.count(),
+                            ]).then(function (_a) {
+                                var data = _a[0], count = _a[1];
+                                params.successCallback(data, count);
                             });
                         }
+                        else if (count !== null)
+                            params.successCallback(data, count);
                         else
-                            params.successCallback(data.slice(params.startRow, params.endRow));
+                            params.successCallback(data);
                     }
                 };
             }
-            else
-                gridOptions['rowData'] = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(this.props.resource._modelPath));
+            else {
+                this.props.resource.get().then(function () {
+                    _this.state.gridOptions.rowData = Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath));
+                    _this.setState({ gridOptions: _this.state.gridOptions });
+                });
+            }
         }
         this.setState({
             staticActions: staticActions,
@@ -349,13 +362,13 @@ var ReduxAgGrid = (function (_super) {
     ReduxAgGrid.prototype.render = function () {
         var AgGrid = React.Children.only(this.props.children);
         var _a = this.state, staticActions = _a.staticActions, gridOptions = _a.gridOptions;
-        if (!this.props.serverSideFilter && this.props.resource)
-            gridOptions['rowData'] = this.state.models.toArray();
+        if (!this.props.serverSideFiltering && this.props.resource)
+            gridOptions.rowData = this.state.models.toArray();
         else if (this.props.data)
-            gridOptions['rowData'] = this.props.data;
+            gridOptions.rowData = this.props.data;
         var GridRenderer = this.state.themeRenderer.GridRenderer;
         var AgGridCopy = React.cloneElement(AgGrid, Object.assign(gridOptions, AgGrid.props));
-        return React.createElement(GridRenderer, { noSearch: this.props.noSearch, actions: staticActions, onSelectAll: this.onSelectAll, dispatch: this.props.dispatch, gridApi: this.gridApi, height: this.props.height }, AgGridCopy);
+        return React.createElement(GridRenderer, { noSearch: this.props.noSearch, actions: staticActions, dispatch: this.props.dispatch, apiRef: this.sendApi, height: this.props.height }, AgGridCopy);
     };
     return ReduxAgGrid;
 }(react_1.Component));

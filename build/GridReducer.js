@@ -8,10 +8,23 @@ function GridReducer(rootState, action) {
     var payload, list, index;
     switch (action.type) {
         case "grid/model/get":
-            return Utils_1.deepSetState.apply(void 0, [rootState, immutable_1.List(action.value.models)].concat(action.value.modelPath));
+            payload = action.value;
+            if (payload.offset === null)
+                return Utils_1.deepSetState.apply(void 0, [rootState, immutable_1.List(payload.models)].concat(payload.modelPath));
+            else {
+                var prev = Utils_1.deepGetState.apply(void 0, [rootState].concat(payload.modelPath));
+                if (prev.size < payload.offset)
+                    prev = prev.concat(immutable_1.Repeat(null, payload.offset - prev.size));
+                return Utils_1.deepSetState.apply(void 0, [rootState, prev.splice.apply(prev, [payload.offset, payload.models.length].concat(payload.models))].concat(payload.modelPath));
+            }
         case "grid/model/count":
             payload = action.value;
-            return Utils_1.deepSetState(rootState, payload.count, 'grid', 'counts', payload.modelPath);
+            var gridInfo = Utils_1.deepGetState(rootState, 'grid', payload.gridName);
+            var newValue = immutable_1.Map({
+                count: payload.count,
+                countedTime: Date.now()
+            });
+            return Utils_1.deepSetState(rootState, gridInfo ? gridInfo.merge(newValue) : newValue, 'grid', payload.gridName);
         case "grid/model/put":
             payload = action.value;
             list = Utils_1.deepGetState.apply(void 0, [rootState].concat(payload.modelPath));

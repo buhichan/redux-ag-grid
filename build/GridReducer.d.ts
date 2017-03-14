@@ -5,6 +5,7 @@ export interface GridActionPayload<T> {
 export declare type GridActionTypes = "grid/model/get" | "grid/model/count" | "grid/model/post" | "grid/model/put" | "grid/model/delete" | "grid/model/change";
 export interface GridGetPayload<T> extends GridActionPayload<T> {
     models: T[];
+    offset: number;
 }
 export interface GridPutPayload<T> extends GridActionPayload<T> {
     model: T;
