@@ -2,6 +2,7 @@
  * Created by YS on 2016/10/12.
  */
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("./Utils");
 function RestfulActionClassFactory(url) {
     return function Action(actionName, actionDef, gridName, config, getQuery, idGetter, modelPath, fetch, mapResToData, dispatch) {

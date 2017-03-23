@@ -2,10 +2,6 @@
 # yarn lockfile v1
 
 
-"@types/lodash@^4.14.44":
-  version "4.14.52"
-  resolved "http://registry.npm.taobao.org/@types/lodash/download/@types/lodash-4.14.52.tgz#de5c7ab14da1289733233c9b0ec6f9e377db90f5"
-
 "@types/material-ui@^0.16.51":
   version "0.16.51"
   resolved "http://registry.npm.taobao.org/@types/material-ui/download/@types/material-ui-0.16.51.tgz#14d0b95f1765d6e650246b73aba1a5e22d4ec0ee"
@@ -39,22 +35,6 @@
 "@types/react@*", "@types/react@^0.14.55":
   version "0.14.57"
   resolved "http://registry.npm.taobao.org/@types/react/download/@types/react-0.14.57.tgz#1878a8654fafdd1d381b8457292b6433498c5b62"
-
-"@types/redux-form@^4.0.31":
-  version "4.0.33"
-  resolved "http://registry.npm.taobao.org/@types/redux-form/download/@types/redux-form-4.0.33.tgz#ebe2832ff88a88bed589f58ce09a12e2fd2d2272"
-  dependencies:
-    "@types/react" "*"
-
-"@types/whatwg-fetch@0.0.33":
-  version "0.0.33"
-  resolved "http://registry.npm.taobao.org/@types/whatwg-fetch/download/@types/whatwg-fetch-0.0.33.tgz#19c0d2863c8cb2380f21a1c736b79cbf7895bb13"
-  dependencies:
-    "@types/whatwg-streams" "*"
-
-"@types/whatwg-streams@*":
-  version "0.0.2"
-  resolved "http://registry.npm.taobao.org/@types/whatwg-streams/download/@types/whatwg-streams-0.0.2.tgz#58eb11cf9ab33a2b55878d568ad7e9b933e67f7d"
 
 Base64@~0.2.0:
   version "0.2.1"
@@ -2870,9 +2850,9 @@ type-is@~1.6.14:
     media-typer "0.3.0"
     mime-types "~2.1.13"
 
-typescript@^2.1.6:
-  version "2.1.6"
-  resolved "http://registry.npm.taobao.org/typescript/download/typescript-2.1.6.tgz#40c7e6e9e5da7961b7718b55505f9cac9487a607"
+typescript@^2.2.1:
+  version "2.2.1"
+  resolved "http://registry.npm.taobao.org/typescript/download/typescript-2.2.1.tgz#4862b662b988a4c8ff691cc7969622d24db76ae9"
 
 ua-parser-js@^0.7.9:
   version "0.7.12"

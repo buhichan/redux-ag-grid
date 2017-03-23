@@ -214,6 +214,7 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                     valueGetter:()=>"",
                     headerName:"",
                     width:62,
+                    suppressResize:true,
                     headerCheckboxSelection: true,
                     headerCheckboxSelectionFilteredOnly: true
                 });

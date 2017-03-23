@@ -1,4 +1,3 @@
-/// <reference types="whatwg-fetch" />
 import { RestfulActionDef, ActionInstance } from "./ActionClassFactory";
 /**
  * Created by YS on 2016/11/4.
@@ -42,7 +41,7 @@ export declare class RestfulResource<Model, Actions> implements Resource<Model> 
         mapFilterToQuery?: (filter: ResourceFilter) => ({
             [id: string]: any;
         });
-        methods?: Resource<Model>;
+        methods?: Partial<Resource<Model>>;
         apiType?: APIType;
         fetch?: typeof window.fetch;
         mapResToData?;

@@ -1,4 +1,3 @@
-/// <reference types="whatwg-fetch" />
 export interface RestfulActionDef<T> extends BaseActionDef<T> {
     path?: string;
     method?: string;

@@ -81,7 +81,7 @@ export class RestfulResource<Model,Actions> implements Resource<Model>{
         dispatch:(action:any)=>void,
         key?,
         mapFilterToQuery?:(filter:ResourceFilter)=>({[id:string]:any}),
-        methods?:Resource<Model>,
+        methods?:Partial<Resource<Model>>,
         apiType?:APIType,
         fetch?:typeof window.fetch,
         mapResToData?

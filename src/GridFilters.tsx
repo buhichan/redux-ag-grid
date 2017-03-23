@@ -123,7 +123,7 @@ export class EnumFilter extends React.Component<any,any>{
     onChange=()=>{
         this.selected = [];
         for(let i =0;i<this.select.selectedOptions.length;i++)
-            this.selected.push(this.select.selectedOptions[i].value);
+            this.selected.push(this.select.selectedOptions[i]['value']);
         this.params.filterChangedCallback();
     };
 }

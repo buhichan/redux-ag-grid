@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("./Utils");
 /**
  * Created by YS on 2016/11/4.
