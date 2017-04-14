@@ -14,6 +14,7 @@ import {ActionInstance, BaseActionDef} from "./ActionClassFactory";
 import {currentTheme, ITheme} from "./themes"
 import {List} from "immutable";
 import {Store} from "redux"
+import {defaultGridOptions} from "./defaultGridOptions";
 
 export type columnType = "text"|"number"|"select"|"checkbox"|"date"|"datetime-local"|"datetime"|"group"|"time"|null;
 export type Options = {name:string,value:string|number}[]
@@ -104,10 +105,9 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                 columnDefs:[],
                 suppressNoRowsOverlay:true,
                 rowData:[],
-                paginationPageSize:20,
+                paginationPageSize:200,
                 suppressPaginationPanel:true,
                 rowModelType:this.props.serverSideFiltering?"pagination":undefined,
-                rowHeight:40,
                 onGridReady:(params)=>{
                     this.gridApi=params.api;
                     if(this.props.columnApi)
@@ -119,7 +119,8 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                 rowSelection:"multiple",
                 enableSorting:true,
                 enableFilter:true,
-                enableColResize: true
+                enableColResize: true,
+                ...defaultGridOptions
             },
             themeRenderer:currentTheme(),
             staticActions:[]
@@ -214,6 +215,7 @@ export class ReduxAgGrid<T> extends Component<GridProps<T>,GridState<T>>{
                     valueGetter:()=>"",
                     headerName:"",
                     width:62,
+                    minWidth:62,
                     suppressResize:true,
                     headerCheckboxSelection: true,
                     headerCheckboxSelectionFilteredOnly: true

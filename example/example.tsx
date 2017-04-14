@@ -3,7 +3,8 @@
  */
 "use strict";
 
-import "bootstrap/dist/css/bootstrap.css"
+import "../style.css"
+import "ag-grid/dist/styles/theme-material.css"
 import {ReduxAgGrid,GridFieldSchema,setStore} from "../src"
 import {AgGridReact} from "ag-grid-react"
 import * as ReactDOM from "react-dom"
@@ -14,7 +15,7 @@ import {Map,fromJS} from "immutable"
 
 import getMuiTheme from "material-ui/styles/getMuiTheme"
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import "../src/themes/Material"
+import "../src/themes/material"
 require('react-tap-event-plugin')();
 
 const theme = getMuiTheme();
@@ -46,10 +47,15 @@ let actions = [{
             data
         })
     },
-    displayName:"jsAction",
-    isStatic:false,
-    useSelected:false,
-},"httpAction"];
+    displayName:"instanceAction",
+    isStatic:false
+},{
+    displayName:"staticAction",
+    call:()=>{
+        alert("haha")
+    },
+    isStatic:true
+}];
 
 let resource= new RestfulResource<any,{
     httpAction:any
@@ -66,18 +72,19 @@ let resource= new RestfulResource<any,{
             }));
         else return data;
     },
-    actions:[{
-        key:"httpAction",
-        displayName:"httpAction",
-        method:"POST",
-        path:":id/customAction2",
-        enabled:(data:any)=>{
-            return data.gender == 1;
-        },
-        data:(data)=>{
-            return data;
+    actions:[
+        {
+            key:"httpAction",
+            method:"POST",
+            path:":id/customAction2",
+            enabled:(data:any)=>{
+                return data.gender == 1;
+            },
+            data:(data)=>{
+                return data;
+            }
         }
-    }]
+    ]
 });
 
 setStore(store);

@@ -1,0 +1,182 @@
+$primary-color: #4783fa;
+$secondary-text-color:#526075;
+$lighter-primary-color: #ddedff;
+$body-color: #f4f5f9;
+$light-gray:#f9f9fa;
+$darker-gray: #e1e6f0;
+$more-darker-gray:#667080;
+$darkest-gray:#0a1633;
+
+.redux-ag-grid{
+  button{
+    line-height: inherit;
+    color: inherit;
+  }
+  .grid-topbar{
+    &:after{
+      display:table;
+      content:"";
+      clear:both;
+    }
+    .grid-static-buttons{
+      float:left;
+      width:100%;
+    }
+    .grid-search{
+      float:left;
+      width:100%;
+    }
+    @media(min-width:768px){
+      .grid-static-buttons{
+        width:75%;
+      }
+      .grid-search{
+        width:25%;
+      }
+    }
+  }
+  padding: 10px;
+  .ag-cell {
+    &[colid="id"], &[colid="resource_no"], &[colid="AssetNo"] {
+      user-select: initial;
+    }
+  }
+  .btn-actions{
+    .btn{
+      padding: 1px 2px;
+      font-size: 8px;
+      line-height: 1.5;
+      border-radius: 0;
+    }
+  }
+  .action-cell{
+    padding-right:5px;
+    padding-left:5px;
+    button{
+      background-color:$lighter-primary-color!important;
+      color:$secondary-text-color!important;
+      &:hover{
+        background-color:$primary-color!important;
+        color:white!important
+      }
+    }
+  }
+}
+
+.ag-material{
+  .ag-header{
+    color: $darkest-gray;
+    border-bottom: 1px solid $darker-gray;
+  }
+  .ag-header-select-all{
+    padding-left:13px;
+  }
+  .ag-header-select-all,.ag-selection-checkbox{
+    opacity:0.6;
+  }
+  .ag-cell{
+    &:focus{
+      outline:none;
+    }
+  }
+  .ag-menu{
+    border:1px solid $light-gray;
+    box-shadow:rgba(0, 0, 0, 0.0392157) 0 1px 15px, rgba(0, 0, 0, 0.0392157) 0 1px 13px;
+    max-height:600px;
+    height:auto;
+    overflow-y:auto;
+  }
+  .ag-cell-no-focus{
+    border-bottom:none;
+  }
+  .ag-row-even{
+    background-color:$light-gray;
+  }
+  .ag-header-cell:first-child,
+  .ag-cell:first-child{
+    padding-left:10px;
+  }
+  .ag-cell-not-inline-editing {
+    padding-top: 12px !important;
+  }
+  .ag-group-cell{
+    font-style:normal;
+  }
+  .ag-row-selected{
+    color:white;
+    background-color: rgba($secondary-text-color,0.2);
+    &.ag-row-hover{
+      background-color: rgba($primary-color,0.5) !important;
+    }
+  }
+  .ag-header-group-cell-label{
+    padding: 0!important;
+  }
+  .ag-header-group-cell-with-group .ag-header-group-text{
+    margin-right: 2px;
+    display: inline-block;
+    text-align: center;
+    width: 100%;
+    border-bottom: 2px solid $primary-color;
+  }
+  .ag-header-cell-resize:hover{
+    background-color: #9a9a9a
+  }
+  .ag-header-expand-icon{
+    margin-left:-20px;
+  }
+  .custom-grid-header{
+    text-align:left;
+    padding-left:2px;
+    text-overflow:ellipsis;
+    overflow:hidden;
+    color:$secondary-text-color;
+    .header-label{
+
+    }
+    .grid-sort,.grid-filter{
+      opacity:0.3;
+      cursor:pointer;
+      margin-left: 2px;
+      position: relative;
+      top: 1px;
+      &:hover, &.active{
+        opacity:1
+      }
+    }
+  }
+}
+.small-header{
+  .custom-grid-header{
+    font-size:10px;
+    .grid-sort,.grid-filter{
+      opacity:0.1
+    }
+  }
+}
+
+.grid-button{
+  button:hover:not([disabled]){
+    box-shadow:rgba(0,0,0, 0.15098) 0 3px 10px, rgba(0, 0, 0, 0.22098) 0 3px 10px
+  }
+}
+
+.grid-search-field{
+  position:relative;
+  input {
+    border: none;
+    background: $body-color;
+    line-height: 30px;
+    padding: 0 5px;
+    border-radius: 2px;
+    &:focus {
+      border-color: $primary-color;
+    }
+  }
+  &:after {
+    position: absolute;
+    right: 5px;
+    content: "\1F50D";
+    top: 7px;
+  }
+}

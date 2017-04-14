@@ -21,11 +21,8 @@
     "redux"
   ],
   "peerDependencies": {
-    "bootstrap": "^3.3.7",
-    "material-ui": "^0.17.0",
-    "react": "^15.4.2",
-    "react-dom": "^15.4.2",
-    "react-tap-event-plugin": "^2.0.1"
+    "material-ui": "*",
+    "tinycolor2": "*"
   },
   "devDependencies": {
     "@types/material-ui": "^0.16.51",
@@ -34,31 +31,26 @@
     "@types/react-dom": "^0.14.19",
     "@types/react-redux": "^4.4.35",
     "awesome-typescript-loader": "^3.0.4",
-    "bootstrap": "^3.3.7",
     "css-loader": "~0.24.0",
     "es6-promise": "^3.2.1",
     "extract-text-webpack-plugin": "~1.0.1",
     "html-webpack-plugin": "~2.22.0",
-    "material-ui": "^0.17.0",
     "path-is-absolute": "^1.0.0",
     "postcss-loader": "~0.11.1",
     "raw-loader": "~0.5.1",
-    "react-tap-event-plugin": "^2.0.1",
     "redux": "^3.6.0",
     "style-loader": "~0.13.1",
-    "ts-loader": "^0.8.2",
     "typescript": "^2.2.1",
     "webpack": "~1.13.2",
-    "webpack-dev-server": "~1.15.1",
-    "whatwg-fetch": "^2.0.0"
+    "webpack-dev-server": "~1.15.1"
   },
   "author": "buhi",
   "license": "MIT",
   "dependencies": {
-    "ag-grid": "^8.2.0",
-    "ag-grid-react": "^8.2.0",
+    "ag-grid": "^9.0.3",
+    "ag-grid-react": "^9.0.0",
     "immutable": "^3.8.1",
-    "react": "^15.4.2",
-    "react-dom": "^15.4.2"
+    "react": "*",
+    "react-dom": "*"
   }
 }

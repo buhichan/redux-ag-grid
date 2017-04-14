@@ -96,3 +96,5 @@ function ReduxStyle(){
 ```
 
 Please refer to the example and typescript definition file as a simple document.
+
+You'll need to import u-icon font icon to make grid header icon appear.
