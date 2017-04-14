@@ -1,1 +1,1 @@
-import "ag-grid/dist/styles/theme-material.css";
+export declare function setColors(colorArray: any, hardCodedColorMap?: any, buttonColor?: any, buttonBGColor?: any): void;

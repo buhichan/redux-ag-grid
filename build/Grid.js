@@ -28,6 +28,7 @@ var Utils_1 = require("./Utils");
 var GridFilters_1 = require("./GridFilters");
 var themes_1 = require("./themes");
 var redux_1 = require("redux");
+var defaultGridOptions_1 = require("./defaultGridOptions");
 //todo: 1.3.0:做个selection的prop,表示用表头checkbox还是单击行来选择.
 function getValue(model, field) {
     if (/\.|\[|\]/.test(field))
@@ -64,27 +65,13 @@ var ReduxAgGrid = (function (_super) {
         _this.state = {
             quickFilterText: '',
             models: _this.props.resource ? Utils_1.deepGetState.apply(void 0, [redux_1.Store.getState()].concat(_this.props.resource._modelPath)) : null,
-            gridOptions: {
-                columnDefs: [],
-                suppressNoRowsOverlay: true,
-                rowData: [],
-                paginationPageSize: 20,
-                suppressPaginationPanel: true,
-                rowModelType: _this.props.serverSideFiltering ? "pagination" : undefined,
-                rowHeight: 40,
-                onGridReady: function (params) {
+            gridOptions: __assign({ columnDefs: [], suppressNoRowsOverlay: true, rowData: [], paginationPageSize: 200, suppressPaginationPanel: true, rowModelType: _this.props.serverSideFiltering ? "pagination" : undefined, onGridReady: function (params) {
                     _this.gridApi = params.api;
                     if (_this.props.columnApi)
                         _this.props.columnApi(params.columnApi);
                     if (_this.apiSender)
                         _this.apiSender.forEach(function (send) { return send(params.api); });
-                },
-                onColumnEverythingChanged: function () { return window.innerWidth >= 480 && _this.gridApi && _this.gridApi.sizeColumnsToFit(); },
-                rowSelection: "multiple",
-                enableSorting: true,
-                enableFilter: true,
-                enableColResize: true
-            },
+                }, onColumnEverythingChanged: function () { return window.innerWidth >= 480 && _this.gridApi && _this.gridApi.sizeColumnsToFit(); }, rowSelection: "multiple", enableSorting: true, enableFilter: true, enableColResize: true }, defaultGridOptions_1.defaultGridOptions),
             themeRenderer: themes_1.currentTheme(),
             staticActions: []
         };
@@ -172,6 +159,7 @@ var ReduxAgGrid = (function (_super) {
                     valueGetter: function () { return ""; },
                     headerName: "",
                     width: 62,
+                    minWidth: 62,
                     suppressResize: true,
                     headerCheckboxSelection: true,
                     headerCheckboxSelectionFilteredOnly: true

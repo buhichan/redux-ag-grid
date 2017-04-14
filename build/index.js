@@ -6,7 +6,6 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-require("../Grid.css");
 __export(require("./Grid"));
 __export(require("./RestfulResource"));
 __export(require("./GridReducer"));

@@ -1,4 +1,3 @@
-import "../Grid.css";
 export * from "./Grid";
 export * from "./RestfulResource";
 export * from "./GridReducer";
