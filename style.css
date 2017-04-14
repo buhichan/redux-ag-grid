@@ -9,7 +9,8 @@
     clear: both; }
   .redux-ag-grid .grid-topbar .grid-static-buttons {
     float: left;
-    width: 100%; }
+    width: 100%;
+    min-height: 1px; }
   .redux-ag-grid .grid-topbar .grid-search {
     float: left;
     width: 100%; }
